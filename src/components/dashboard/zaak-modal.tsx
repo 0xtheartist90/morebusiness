@@ -10,70 +10,54 @@ import * as Dialog from '@radix-ui/react-dialog';
 
 import { ChevronLeft, ChevronRight, ExternalLink, MapPin, Phone, X } from 'lucide-react';
 
-/** A section of the pop-up: a small lowercase heading, then its content. */
-function Blok({
+// ---- Right pane building blocks: one panel shape, one row shape, one footer shape -------------------
+
+/** A panel: title (and optional note on the right), rows, and an optional footer strip for the total. */
+function Paneel({
     titel,
-    rechts,
-    children,
-    className
+    meta,
+    voet,
+    children
 }: {
     titel: string;
-    rechts?: ReactNode;
+    meta?: ReactNode;
+    voet?: ReactNode;
     children: ReactNode;
-    className?: string;
 }) {
     return (
-        <section className={cn('rounded-xl border bg-white p-4 lg:p-5', className)}>
-            <div className='flex min-h-6 items-center justify-between gap-2'>
-                <h3 className='label-hud'>{titel}</h3>
-                {rechts}
-            </div>
-            <div className='mt-3'>{children}</div>
+        <section className='flex flex-col overflow-hidden rounded-xl border bg-white'>
+            <header className='flex h-11 shrink-0 items-center justify-between gap-2 border-b px-4'>
+                <h3 className='text-[13px] font-semibold'>{titel}</h3>
+                {meta}
+            </header>
+            <div className='flex-1 px-4 py-2'>{children}</div>
+            {voet && (
+                <footer className='flex h-11 shrink-0 items-center justify-between gap-3 border-t bg-[#fffaf5] px-4 text-[13.5px] font-semibold'>
+                    {voet}
+                </footer>
+            )}
         </section>
     );
 }
 
-/** One line of a sum: label, amount; `totaal` draws the line above it and makes it bold. */
-function Som({
-    label,
-    hint,
-    waarde,
-    totaal,
-    accent
-}: {
-    label: string;
-    hint?: string;
-    waarde: string;
-    totaal?: boolean;
-    accent?: boolean;
-}) {
+/** A row: label left, amount right in tabular figures. Unknown amounts are shown faded. */
+function Rij({ label, hint, waarde, sterk }: { label: string; hint?: string; waarde: string; sterk?: boolean }) {
     return (
-        <div
-            className={cn(
-                'flex items-baseline justify-between gap-3 py-[3px] text-[13.5px]',
-                totaal && 'mt-1 border-t pt-2 font-semibold'
-            )}>
-            <span className={cn(totaal ? 'text-foreground' : 'text-stone-600')}>
+        <div className='flex h-8 items-center justify-between gap-3 text-[13.5px]'>
+            <span className={cn('truncate', sterk ? 'font-semibold' : 'text-stone-600')}>
                 {label}
                 {hint && <span className='text-muted-foreground font-normal'> · {hint}</span>}
             </span>
             <span
-                className={cn(
-                    'readout',
-                    accent && 'text-[var(--brand-ink)]',
-                    waarde === 'onbekend' && 'font-normal opacity-50'
-                )}>
+                className={cn('readout shrink-0', sterk && 'font-semibold', waarde === 'onbekend' && 'text-stone-400')}>
                 {waarde}
             </span>
         </div>
     );
 }
 
-/**
- * One bar per amount, all on the same scale (the turnover), so lengths compare directly. Only profit is orange; the
- * rest stays neutral, so the eye goes to what is left over.
- */
-function Staaf({
+/** A row with a bar, all bars on the same scale (the turnover). Only profit is orange. */
+function StaafRij({
     label,
     waarde,
     max,
@@ -87,22 +71,34 @@ function Staaf({
     min?: boolean;
 }) {
     return (
-        <div className='grid grid-cols-[7.5rem_1fr_auto] items-center gap-3 text-[13px]'>
-            <span className={cn('truncate', accent ? 'text-foreground font-semibold' : 'text-stone-600')}>{label}</span>
-            <div className='h-2 rounded-full bg-stone-100'>
+        <div className='grid h-8 grid-cols-[8.25rem_1fr_5.5rem] items-center gap-3 text-[13.5px]'>
+            <span className={cn('truncate', accent ? 'font-semibold' : 'text-stone-600')}>{label}</span>
+            <div className='h-1.5 rounded-full bg-stone-100'>
                 <div
                     className={cn('h-full rounded-full', accent ? 'bg-[var(--brand)]' : 'bg-stone-300')}
                     style={{ width: `${Math.max(2, Math.min(100, (waarde / max) * 100))}%` }}
                 />
             </div>
-            <span
-                className={cn(
-                    'readout text-right',
-                    accent ? 'font-semibold text-[var(--brand-ink)]' : 'text-stone-700'
-                )}>
-                {min ? '− ' : ''}
+            <span className={cn('readout text-right', accent && 'font-semibold')}>
+                {min ? '− ' : ''}
                 {thb(waarde)}
             </span>
+        </div>
+    );
+}
+
+/** A small number in a row of three, under the customer meter. */
+function Mini({ label, waarde }: { label: string; waarde: string }) {
+    return (
+        <div className='min-w-0 px-3 first:pl-0 last:pr-0'>
+            <p className='text-muted-foreground text-[11.5px] leading-tight'>{label}</p>
+            <p
+                className={cn(
+                    'readout mt-0.5 truncate text-[14px] font-semibold',
+                    waarde === 'onbekend' && 'font-normal text-stone-400'
+                )}>
+                {waarde}
+            </p>
         </div>
     );
 }
@@ -120,13 +116,17 @@ function Kpi({ label, children, accent }: { label: string; children: ReactNode; 
     );
 }
 
+// ---- The pop-up ---------------------------------------------------------------------------------------
+
 export function ZaakModal({
     zaak,
     onClose,
     favoriet,
     onFavoriet,
     onVorige,
-    onVolgende
+    onVolgende,
+    positie,
+    totaal
 }: {
     zaak: Zaak | null;
     onClose: () => void;
@@ -134,6 +134,9 @@ export function ZaakModal({
     onFavoriet: () => void;
     onVorige?: () => void;
     onVolgende?: () => void;
+    /** 1-based place of this business in the current list, and the list's length. */
+    positie?: number;
+    totaal?: number;
 }) {
     return (
         <Dialog.Root open={!!zaak} onOpenChange={(o) => !o && onClose()}>
@@ -152,6 +155,8 @@ export function ZaakModal({
                             onFavoriet={onFavoriet}
                             onVorige={onVorige}
                             onVolgende={onVolgende}
+                            positie={positie}
+                            totaal={totaal}
                         />
                     )}
                 </Dialog.Content>
@@ -162,21 +167,24 @@ export function ZaakModal({
 
 /**
  * Wide screens: two panes side by side. Left, the business itself (photo, name, the four numbers, the actions);
- * right, the analysis (start sum and monthly bars next to each other, then customers per day and details). Phones
- * stack it all in one scrolling column.
+ * right, four equal panels (start, month, customers per day, details). Phones stack it all in one scrolling column.
  */
 function Inhoud({
     zaak,
     favoriet,
     onFavoriet,
     onVorige,
-    onVolgende
+    onVolgende,
+    positie,
+    totaal
 }: {
     zaak: Zaak;
     favoriet: boolean;
     onFavoriet: () => void;
     onVorige?: () => void;
     onVolgende?: () => void;
+    positie?: number;
+    totaal?: number;
 }) {
     const b = band(zaak.terugverdientijd);
     const { omzet, winst, lasten, inkoop, buffer, marge } = cijfers(zaak);
@@ -187,6 +195,7 @@ function Inhoud({
     const pct = (n: number) => `${Math.min(100, (n / meterMax) * 100)}%`;
     const boven = verwacht !== null && quitte ? Math.round((verwacht / quitte - 1) * 100) : null;
     const ronde = 'grid size-9 place-items-center rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white';
+    const navKnop = 'btn-key grid size-8 place-items-center rounded-lg disabled:opacity-40';
 
     return (
         <div className='flex min-h-0 w-full flex-col overflow-y-auto lg:flex-row lg:overflow-hidden'>
@@ -298,11 +307,16 @@ function Inhoud({
                 </div>
             </aside>
 
-            {/* Right pane: the analysis. */}
+            {/* Right pane: four equal panels. */}
             <div className='flex min-w-0 flex-1 flex-col lg:min-h-0'>
-                {/* Desktop bar: previous/next and close. */}
-                <div className='hidden items-center justify-between gap-3 border-b bg-white px-5 py-2.5 lg:flex'>
-                    <p className='label-hud'>analyse</p>
+                <div className='hidden h-14 shrink-0 items-center justify-between gap-3 border-b bg-white px-5 lg:flex'>
+                    <p className='readout text-muted-foreground text-[13px]'>
+                        {positie && totaal ? (
+                            <>
+                                Zaak <span className='text-foreground font-semibold'>{positie}</span> van {totaal}
+                            </>
+                        ) : null}
+                    </p>
                     <div className='flex items-center gap-1.5'>
                         <button
                             type='button'
@@ -310,7 +324,7 @@ function Inhoud({
                             disabled={!onVorige}
                             aria-label='Vorige zaak'
                             title='Vorige (←)'
-                            className='btn-key grid size-8 place-items-center rounded-lg disabled:opacity-40'>
+                            className={navKnop}>
                             <ChevronLeft className='size-4' />
                         </button>
                         <button
@@ -319,144 +333,141 @@ function Inhoud({
                             disabled={!onVolgende}
                             aria-label='Volgende zaak'
                             title='Volgende (→)'
-                            className='btn-key grid size-8 place-items-center rounded-lg disabled:opacity-40'>
+                            className={navKnop}>
                             <ChevronRight className='size-4' />
                         </button>
-                        <Dialog.Close
-                            aria-label='Sluiten'
-                            className='btn-key ml-1.5 grid size-8 place-items-center rounded-lg'>
+                        <Dialog.Close aria-label='Sluiten' className={cn(navKnop, 'ml-2')}>
                             <X className='size-4' />
                         </Dialog.Close>
                     </div>
                 </div>
 
-                <div className='grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 xl:grid-cols-2'>
-                    {/* Start: the sum, one-off first, then the buffer. */}
-                    <Blok
-                        titel='startinvestering'
-                        rechts={
+                <div className='grid auto-rows-fr gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 xl:grid-cols-2'>
+                    {/* Start: the sum, ending in the total. */}
+                    <Paneel
+                        titel='Startinvestering'
+                        meta={
                             <span
                                 className={cn(
-                                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1',
+                                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1',
                                     BAND_PILL[b]
                                 )}>
                                 terug in {maanden(zaak.terugverdientijd)}
                             </span>
+                        }
+                        voet={
+                            <>
+                                <span>Totaal nodig</span>
+                                <span className='readout text-[var(--brand-ink)]'>{thb(zaak.startkapitaal)}</span>
+                            </>
                         }>
-                        <Som label='Overname' waarde={thb(zaak.overname)} />
-                        <Som label='Borg' waarde={kosten(zaak.borg)} />
-                        <Som label='Huur vooruit' waarde={kosten(zaak.huurVooruit)} />
-                        <Som label='Eenmalig' hint='kwijt bij de start' waarde={thb(zaak.eenmalig)} totaal />
-                        <Som label='Buffer' hint='1 maand lasten' waarde={thb(buffer)} />
-                        <Som label='Startinvestering' waarde={thb(zaak.startkapitaal)} totaal accent />
-                        <p className='text-muted-foreground mt-2 text-xs leading-relaxed'>
-                            De terugverdientijd rekent alleen het eenmalige deel terug; de buffer heb je achter de hand.
-                        </p>
-                    </Blok>
+                        <div className='divide-y divide-stone-100'>
+                            <Rij label='Overname' waarde={thb(zaak.overname)} />
+                            <Rij label='Borg' waarde={kosten(zaak.borg)} />
+                            <Rij label='Huur vooruit' waarde={kosten(zaak.huurVooruit)} />
+                            <Rij label='Eenmalig' waarde={thb(zaak.eenmalig)} sterk />
+                            <Rij label='Buffer' hint='1 maand lasten' waarde={thb(buffer)} />
+                        </div>
+                    </Paneel>
 
-                    {/* Every month: one scale, only profit in orange. */}
-                    <Blok
-                        titel='elke maand'
-                        rechts={
-                            marge !== null && (
-                                <span className='readout text-muted-foreground text-xs'>marge {marge}%</span>
+                    {/* Month: one scale, only profit in orange. */}
+                    <Paneel
+                        titel='Elke maand'
+                        meta={<span className='text-muted-foreground text-xs'>lasten {thb(lasten)}</span>}
+                        voet={
+                            winst !== null && (
+                                <>
+                                    <span>
+                                        Winst{' '}
+                                        {marge !== null && (
+                                            <span className='text-muted-foreground font-normal'>· marge {marge}%</span>
+                                        )}
+                                    </span>
+                                    <span className='readout text-[var(--brand-ink)]'>{thb(winst)}</span>
+                                </>
                             )
                         }>
                         {omzet === null || winst === null ? (
-                            <p className='text-muted-foreground text-sm'>Omzet en winst nog niet berekend.</p>
+                            <p className='text-muted-foreground py-2 text-sm'>Omzet en winst nog niet berekend.</p>
                         ) : (
-                            <div className='space-y-3'>
-                                <Staaf label='Omzet' waarde={omzet} max={omzet} />
-                                {inkoop !== null && <Staaf label='Inkoop' waarde={inkoop} max={omzet} min />}
+                            <div className='divide-y divide-stone-100'>
+                                <StaafRij label='Omzet' waarde={omzet} max={omzet} />
+                                {inkoop !== null && <StaafRij label='Inkoop' waarde={inkoop} max={omzet} min />}
                                 {zaak.vasteKosten !== null && (
-                                    <Staaf label='Huur, loon, nuts' waarde={zaak.vasteKosten} max={omzet} min />
+                                    <StaafRij label='Huur, loon, nuts' waarde={zaak.vasteKosten} max={omzet} min />
                                 )}
-                                <Staaf label='Winst' waarde={winst} max={omzet} accent />
-                                <p className='text-muted-foreground pt-1 text-xs leading-relaxed'>
-                                    Lasten samen {thb(lasten)} per maand, elke maand hetzelfde. De eenmalige kosten
-                                    zitten hier niet in.
-                                </p>
+                                <StaafRij label='Winst' waarde={winst} max={omzet} accent />
                             </div>
                         )}
-                    </Blok>
+                    </Paneel>
 
                     {/* Per day: break-even against expected. */}
-                    {quitte !== null && (
-                        <Blok titel='klanten per dag'>
-                            <div className='flex items-end justify-between gap-4'>
-                                <div>
-                                    <p className='readout text-2xl leading-none font-semibold'>
-                                        {getal(quitte)}{' '}
-                                        <span className='text-muted-foreground text-sm font-normal'>
-                                            {zaak.eenheid}
-                                        </span>
-                                    </p>
-                                    <p className='text-muted-foreground mt-1 text-xs'>nodig om quitte te spelen</p>
-                                </div>
-                                {verwacht !== null && (
-                                    <div className='text-right'>
-                                        <p className='readout text-2xl leading-none font-semibold text-[var(--brand-ink)]'>
-                                            {getal(verwacht)}{' '}
-                                            <span className='text-muted-foreground text-sm font-normal'>
-                                                {zaak.eenheid}
-                                            </span>
-                                        </p>
-                                        <p className='text-muted-foreground mt-1 text-xs'>
-                                            verwacht, basis voor de winst
-                                        </p>
+                    <Paneel
+                        titel='Klanten per dag'
+                        meta={<span className='text-muted-foreground text-xs'>{zaak.eenheid}</span>}>
+                        {quitte === null ? (
+                            <p className='text-muted-foreground py-2 text-sm'>Nog niet berekend.</p>
+                        ) : (
+                            <div className='py-1.5'>
+                                <div className='flex items-end justify-between gap-4'>
+                                    <div>
+                                        <p className='readout text-2xl leading-none font-semibold'>{getal(quitte)}</p>
+                                        <p className='text-muted-foreground mt-1 text-xs'>quitte</p>
                                     </div>
-                                )}
-                            </div>
-                            <div
-                                className='relative mt-4 h-3 rounded-full bg-stone-100'
-                                role='img'
-                                aria-label={`Quitte ${getal(quitte)}, verwacht ${verwacht === null ? 'onbekend' : getal(verwacht)} per dag`}>
-                                {verwacht !== null && (
-                                    <div
-                                        className='absolute inset-y-0 left-0 rounded-full bg-[var(--brand)]'
-                                        style={{ width: pct(verwacht) }}
-                                    />
-                                )}
-                                <div
-                                    className='absolute -inset-y-1.5 w-[3px] -translate-x-1/2 rounded-full bg-stone-900 ring-2 ring-white'
-                                    style={{ left: pct(quitte) }}
-                                />
-                            </div>
-                            <p className='text-muted-foreground mt-3 text-[13px] leading-relaxed'>
-                                {zaak.bestedingPerKlant !== null && (
-                                    <>
-                                        Gemiddeld{' '}
-                                        <span className='readout text-foreground font-medium'>
-                                            {thb(zaak.bestedingPerKlant)}
-                                        </span>{' '}
-                                        per {enkelvoud(zaak.eenheid)}.{' '}
-                                    </>
-                                )}
-                                {boven !== null && boven > 0 && <>Verwachting {boven}% boven quitte. </>}
-                                {zaak.breakEvenOmzetDag !== null && (
-                                    <>Quitte = {thb(zaak.breakEvenOmzetDag)} omzet per dag.</>
-                                )}
-                            </p>
-                        </Blok>
-                    )}
-
-                    <Blok titel='details' className={cn(quitte === null && 'xl:col-span-2')}>
-                        <dl className='space-y-1.5 text-[13.5px]'>
-                            {(
-                                [
-                                    ['Huur / maand', thb(zaak.huur)],
-                                    ['Vaste kosten / maand', thb(zaak.vasteKosten)],
-                                    ['Telefoon', zaak.telefoon ?? 'onbekend'],
-                                    ['Bron', zaak.bron === 'FB' ? 'Facebook' : zaak.bron]
-                                ] as const
-                            ).map(([k, v]) => (
-                                <div key={k} className='flex justify-between gap-3'>
-                                    <dt className='text-muted-foreground'>{k}</dt>
-                                    <dd className={cn('readout text-right', v === 'onbekend' && 'opacity-50')}>{v}</dd>
+                                    {verwacht !== null && (
+                                        <div className='text-right'>
+                                            <p className='readout text-2xl leading-none font-semibold text-[var(--brand-ink)]'>
+                                                {getal(verwacht)}
+                                            </p>
+                                            <p className='text-muted-foreground mt-1 text-xs'>verwacht</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                        </dl>
-                    </Blok>
+                                <div
+                                    className='relative mt-3 h-2.5 rounded-full bg-stone-100'
+                                    role='img'
+                                    aria-label={`Quitte ${getal(quitte)}, verwacht ${verwacht === null ? 'onbekend' : getal(verwacht)} per dag`}>
+                                    {verwacht !== null && (
+                                        <div
+                                            className='absolute inset-y-0 left-0 rounded-full bg-[var(--brand)]'
+                                            style={{ width: pct(verwacht) }}
+                                        />
+                                    )}
+                                    <div
+                                        className='absolute -inset-y-1 w-[3px] -translate-x-1/2 rounded-full bg-stone-900 ring-2 ring-white'
+                                        style={{ left: pct(quitte) }}
+                                    />
+                                </div>
+                                <div className='mt-4 grid grid-cols-3 divide-x border-t pt-3'>
+                                    <Mini
+                                        label={`Per ${enkelvoud(zaak.eenheid)}`}
+                                        waarde={thb(zaak.bestedingPerKlant)}
+                                    />
+                                    <Mini label='Omzet quitte' waarde={thb(zaak.breakEvenOmzetDag)} />
+                                    <Mini label='Boven quitte' waarde={boven === null ? 'onbekend' : `+${boven}%`} />
+                                </div>
+                            </div>
+                        )}
+                    </Paneel>
+
+                    {/* Details. */}
+                    <Paneel
+                        titel='Details'
+                        meta={
+                            <span className='text-muted-foreground text-xs'>
+                                {zaak.bron === 'FB' ? 'Facebook' : zaak.bron}
+                            </span>
+                        }>
+                        <div className='divide-y divide-stone-100'>
+                            <Rij label='Huur / maand' waarde={thb(zaak.huur)} />
+                            <Rij label='Vaste kosten / mnd' waarde={thb(zaak.vasteKosten)} />
+                            <Rij label='Telefoon' waarde={zaak.telefoon ?? 'onbekend'} />
+                            <Rij
+                                label='Verwacht / dag'
+                                waarde={verwacht === null ? 'onbekend' : `${getal(verwacht)} ${zaak.eenheid}`}
+                            />
+                        </div>
+                    </Paneel>
                 </div>
 
                 {/* Phones: previous/next at the bottom of the scroll. */}
@@ -468,6 +479,11 @@ function Inhoud({
                         className='btn-key inline-flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-medium disabled:opacity-40'>
                         <ChevronLeft className='size-4' /> Vorige
                     </button>
+                    {positie && totaal ? (
+                        <span className='readout text-muted-foreground text-xs'>
+                            {positie} / {totaal}
+                        </span>
+                    ) : null}
                     <button
                         type='button'
                         onClick={onVolgende}

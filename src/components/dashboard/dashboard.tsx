@@ -360,6 +360,8 @@ export function Dashboard({ data }: { data: ZakenData }) {
                     onVolgende={
                         openAt >= 0 && openAt < lijst.length - 1 ? () => setOpenId(lijst[openAt + 1].id) : undefined
                     }
+                    positie={openAt >= 0 ? openAt + 1 : undefined}
+                    totaal={lijst.length}
                 />
             </main>
         </div>
