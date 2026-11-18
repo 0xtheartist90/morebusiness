@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { VernieuwKnop } from '@/components/dashboard/vernieuw-knop';
 import { ZaakCard, typeIcon } from '@/components/dashboard/zaak-card';
 import { ZaakModal } from '@/components/dashboard/zaak-modal';
-import { maanden, thb } from '@/lib/format';
+import { thb } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Zaak, ZakenData } from '@/lib/zaak-types';
 
@@ -109,18 +109,6 @@ function filterZaken(zaken: Zaak[], f: Filters, favs: string[]) {
 
 // ---- Building blocks -------------------------------------------------------------------------
 
-function StatTile({ label, value, hint }: { label: string; value: string; hint?: string | null }) {
-    return (
-        <div className='min-w-0 rounded-xl border border-[#f3e2d4] bg-[linear-gradient(180deg,#ffffff,#fffaf6)] px-3.5 py-3 sm:px-4 sm:py-3.5'>
-            <p className='readout text-muted-foreground line-clamp-2 text-[11.5px] leading-tight font-medium tracking-[0.06em] lowercase sm:line-clamp-1 sm:tracking-[0.14em]'>
-                {label}
-            </p>
-            <p className='text-glow readout mt-2 truncate text-[1.35rem] leading-none sm:text-[1.7rem]'>{value}</p>
-            <p className='text-muted-foreground mt-2 min-h-4 truncate text-xs'>{hint}</p>
-        </div>
-    );
-}
-
 function Monogram({ small }: { small?: boolean }) {
     return (
         <span
@@ -199,23 +187,11 @@ export function Dashboard({ data }: { data: ZakenData }) {
         const m = new Map<string, number>();
         for (const z of zaken) m.set(z.type, (m.get(z.type) ?? 0) + 1);
 
-        return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        // Most common first; "Overig/onbekend" always last, as it is the leftover group.
+        const laatst = (t: string) => (/^overig/i.test(t) ? 1 : 0);
+
+        return [...m.entries()].sort((a, b) => laatst(a[0]) - laatst(b[0]) || b[1] - a[1] || a[0].localeCompare(b[0]));
     }, [zaken]);
-
-    // The header numbers follow the current selection.
-    const stats = useMemo(() => {
-        const met = (get: (z: Zaak) => number | null) => lijst.filter((z) => get(z) !== null);
-        const laagste = (get: (z: Zaak) => number | null) =>
-            met(get).reduce<Zaak | null>((m, z) => (!m || get(z)! < get(m)! ? z : m), null);
-        const winst = met((z) => z.winstPerMaand);
-
-        return {
-            snelst: laagste((z) => z.terugverdientijd),
-            goedkoopst: laagste((z) => z.startkapitaal),
-            gemWinst: winst.length ? winst.reduce((t, z) => t + z.winstPerMaand!, 0) / winst.length : null,
-            nWinst: winst.length
-        };
-    }, [lijst]);
 
     const sort = SORTS.find((s) => s.key === f.sort) ?? SORTS[0];
 
@@ -270,41 +246,6 @@ export function Dashboard({ data }: { data: ZakenData }) {
             </aside>
 
             <main className='px-4 pt-4 pb-12 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8'>
-                {/* Hero: the light version of SRE's header card, with an orange glow. */}
-                <section className='relative isolate overflow-hidden rounded-2xl border border-[#f3e2d4] bg-white px-4 py-5 shadow-[var(--shadow-card)] sm:px-6 sm:py-6'>
-                    <div
-                        aria-hidden
-                        className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(50rem_18rem_at_100%_-30%,rgb(var(--brand-rgb)/0.16),transparent_60%),radial-gradient(30rem_16rem_at_-5%_120%,rgb(var(--brand-rgb)/0.08),transparent_60%)]'
-                    />
-                    <p className='label-hud'>{f.favorieten ? 'favorieten' : 'overname · chiang mai'}</p>
-                    <h1 className='mt-2 text-2xl font-semibold tracking-tight sm:text-[1.9rem]'>
-                        Zaken om over te nemen
-                    </h1>
-                    <p className='text-muted-foreground mt-1.5 max-w-2xl text-sm leading-relaxed'>
-                        Startkapitaal is alles wat je nodig hebt: overname, borg en huur vooruit, plus de eerste maand
-                        draaien.
-                    </p>
-
-                    <dl className='mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4'>
-                        <StatTile label='zaken' value={`${lijst.length}`} hint={f.type ?? 'alle types'} />
-                        <StatTile
-                            label='snelst terugverdiend'
-                            value={maanden(stats.snelst?.terugverdientijd ?? null)}
-                            hint={stats.snelst?.naam}
-                        />
-                        <StatTile
-                            label='laagste startkapitaal'
-                            value={thb(stats.goedkoopst?.startkapitaal ?? null)}
-                            hint={stats.goedkoopst?.naam}
-                        />
-                        <StatTile
-                            label='gem. winst / mnd'
-                            value={thb(stats.gemWinst === null ? null : Math.round(stats.gemWinst))}
-                            hint={stats.nWinst ? `over ${stats.nWinst} zaken` : null}
-                        />
-                    </dl>
-                </section>
-
                 {/* One toolbar: type on the left, sort on the right. */}
                 <div className='mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
                     <div className='no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:px-0'>
