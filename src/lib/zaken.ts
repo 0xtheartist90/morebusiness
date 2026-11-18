@@ -13,6 +13,8 @@ const SHEET_ID = process.env.SHEET_ID || '1vlvLUjGLyEdGp5vdUZQapy-_hSeP3qqoCAuac
 export const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
 /** How often the sheet is fetched again, in seconds (the page uses the same interval). */
 export const VERVERS_SECONDEN = 300;
+/** Cache tag of the sheet fetch, so the refresh button can drop it. */
+export const SHEET_TAG = 'sheet';
 
 const XLSX_PATH = path.join(process.cwd(), 'data', 'zaken.xlsx');
 const CSV_PATH = path.join(process.cwd(), 'data', 'zaken.csv');
@@ -21,7 +23,7 @@ type Grid = { rows: string[][]; links: Map<string, string>; live: boolean };
 
 async function readLive(): Promise<Grid> {
     const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx`, {
-        next: { revalidate: VERVERS_SECONDEN },
+        next: { revalidate: VERVERS_SECONDEN, tags: [SHEET_TAG] },
         signal: AbortSignal.timeout(10_000)
     });
     // A sheet that isn't shared answers with a sign-in page (HTML), not a spreadsheet.
@@ -117,6 +119,17 @@ function url(v: string | undefined): string | null {
     const s = clean(v);
 
     return /^https?:\/\//i.test(s) ? s : null;
+}
+
+/**
+ * A Google Drive share link ("drive.google.com/file/d/<id>/view" or "…open?id=<id>") points at a page, not an image;
+ * this turns it into the image itself. Only works for files shared as "anyone with the link".
+ */
+function fotoUrl(u: string | null): string | null {
+    if (!u || !/drive\.google\.com/i.test(u)) return u;
+    const id = u.match(/\/file\/d\/([\w-]+)/)?.[1] ?? u.match(/[?&]id=([\w-]+)/)?.[1];
+
+    return id ? `https://lh3.googleusercontent.com/d/${id}=w1200` : u;
 }
 
 function bron(opmerking: string | null): Bron {
@@ -246,7 +259,7 @@ export async function loadZaken(): Promise<ZakenData> {
             telefoon: text(r[C.tel]),
             link: urlAt(C.link),
             opmerking,
-            foto: urlAt(C.foto),
+            foto: fotoUrl(urlAt(C.foto)),
             bron: bron(opmerking)
         });
     }

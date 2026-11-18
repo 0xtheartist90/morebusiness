@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { VernieuwKnop } from '@/components/dashboard/vernieuw-knop';
 import { ZaakCard, typeIcon } from '@/components/dashboard/zaak-card';
 import { maanden, thb } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -335,6 +336,7 @@ export function Dashboard({ data }: { data: ZakenData }) {
                     </div>
 
                     <div className='flex shrink-0 items-center gap-1.5'>
+                        <VernieuwKnop className='mr-1' />
                         <label className='relative'>
                             <span className='sr-only'>Sorteren op</span>
                             <select
