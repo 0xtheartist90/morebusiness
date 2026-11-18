@@ -37,3 +37,4 @@ next-env.d.ts
 
 # local backup of the Google Sheet (the app reads the sheet live)
 /data/
+.env*
