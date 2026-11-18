@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { VernieuwKnop } from '@/components/dashboard/vernieuw-knop';
 import { ZaakCard, typeIcon } from '@/components/dashboard/zaak-card';
+import { ZaakModal } from '@/components/dashboard/zaak-modal';
 import { maanden, thb } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Zaak, ZakenData } from '@/lib/zaak-types';
@@ -188,6 +189,10 @@ export function Dashboard({ data }: { data: ZakenData }) {
     const { f, set } = useFilters();
 
     const lijst = useMemo(() => filterZaken(zaken, f, favs), [zaken, f, favs]);
+    // The business open in the pop-up; previous/next walk the current (filtered, sorted) list.
+    const [openId, setOpenId] = useState<string | null>(null);
+    const openAt = openId ? lijst.findIndex((z) => z.id === openId) : -1;
+    const open = openAt >= 0 ? lijst[openAt] : null;
     const nFav = favs.filter((id) => zaken.some((z) => z.id === id)).length;
 
     const types = useMemo(() => {
@@ -370,13 +375,14 @@ export function Dashboard({ data }: { data: ZakenData }) {
                 </div>
 
                 {lijst.length ? (
-                    <div className='3xl:grid-cols-4 mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3'>
+                    <div className='3xl:grid-cols-5 mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'>
                         {lijst.map((z) => (
                             <ZaakCard
                                 key={z.id}
                                 zaak={z}
                                 favoriet={favs.includes(z.id)}
                                 onFavoriet={() => toggle(z.id)}
+                                onOpen={() => setOpenId(z.id)}
                             />
                         ))}
                     </div>
@@ -403,6 +409,17 @@ export function Dashboard({ data }: { data: ZakenData }) {
                 )}
 
                 <Aannames data={data} />
+
+                <ZaakModal
+                    zaak={open}
+                    onClose={() => setOpenId(null)}
+                    favoriet={!!open && favs.includes(open.id)}
+                    onFavoriet={() => open && toggle(open.id)}
+                    onVorige={openAt > 0 ? () => setOpenId(lijst[openAt - 1].id) : undefined}
+                    onVolgende={
+                        openAt >= 0 && openAt < lijst.length - 1 ? () => setOpenId(lijst[openAt + 1].id) : undefined
+                    }
+                />
             </main>
         </div>
     );
