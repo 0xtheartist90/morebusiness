@@ -62,25 +62,52 @@ function StaafRij({
     waarde,
     max,
     accent,
-    min
+    min,
+    sterk,
+    sub
 }: {
     label: string;
     waarde: number;
     max: number;
+    /** Profit: orange. */
     accent?: boolean;
     min?: boolean;
+    /** A total (the monthly costs): bold, dark bar. */
+    sterk?: boolean;
+    /** A part of the total above: indented, smaller, light bar. */
+    sub?: boolean;
 }) {
     return (
-        <div className='grid h-8 grid-cols-[8.25rem_1fr_5.5rem] items-center gap-3 text-[13.5px]'>
-            <span className={cn('truncate', accent ? 'font-semibold' : 'text-stone-600')}>{label}</span>
-            <div className='h-1.5 rounded-full bg-stone-100'>
+        <div
+            className={cn(
+                'grid grid-cols-[8.25rem_1fr_5.5rem] items-center gap-3',
+                sub ? 'h-7 text-[12.5px]' : 'h-9 text-[13.5px]'
+            )}>
+            <span
+                className={cn(
+                    'truncate',
+                    sub && 'text-muted-foreground pl-3',
+                    !sub && (accent || sterk ? 'font-semibold' : 'text-stone-600')
+                )}>
+                {label}
+            </span>
+            <div className={cn('rounded-full bg-stone-100', sub ? 'h-1' : 'h-2')}>
                 <div
-                    className={cn('h-full rounded-full', accent ? 'bg-[var(--brand)]' : 'bg-stone-300')}
+                    className={cn(
+                        'h-full rounded-full',
+                        accent ? 'bg-[var(--brand)]' : sterk ? 'bg-stone-600' : sub ? 'bg-stone-300' : 'bg-stone-400'
+                    )}
                     style={{ width: `${Math.max(2, Math.min(100, (waarde / max) * 100))}%` }}
                 />
             </div>
-            <span className={cn('readout text-right', accent && 'font-semibold')}>
-                {min ? '− ' : ''}
+            <span
+                className={cn(
+                    'readout text-right',
+                    (accent || sterk) && 'font-semibold',
+                    accent && 'text-[var(--brand-ink)]',
+                    sub && 'text-muted-foreground'
+                )}>
+                {min ? '\u2212\u2009' : ''}
                 {thb(waarde)}
             </span>
         </div>
@@ -103,18 +130,38 @@ function Mini({ label, waarde }: { label: string; waarde: string }) {
     );
 }
 
-function Kpi({ label, children, accent }: { label: string; children: ReactNode; accent?: boolean }) {
+function Kpi({
+    label,
+    children,
+    accent,
+    klein,
+    sterk
+}: {
+    label: string;
+    children: ReactNode;
+    accent?: boolean;
+    /** The three monthly tiles: a size smaller, so three fit in a row. */
+    klein?: boolean;
+    /** The monthly costs: a darker edge, as the number to keep an eye on. */
+    sterk?: boolean;
+}) {
     return (
         <div
             className={cn(
-                'min-w-0 rounded-xl border px-3.5 py-3',
-                accent ? 'border-[#f3e2d4] bg-[linear-gradient(180deg,#fff,#fff7f0)]' : 'bg-white'
+                'h-full min-w-0 rounded-xl border',
+                klein ? 'px-3 py-2.5' : 'px-3.5 py-3',
+                accent ? 'border-[#f3e2d4] bg-[linear-gradient(180deg,#fff,#fff7f0)]' : 'bg-white',
+                sterk && 'border-stone-300 bg-stone-50'
             )}>
             <p className='text-muted-foreground truncate text-[11.5px]'>{label}</p>
-            <div className='readout mt-1 truncate text-lg leading-tight font-semibold'>{children}</div>
+            <div className={cn('readout mt-1 truncate leading-tight font-semibold', klein ? 'text-[15px]' : 'text-lg')}>
+                {children}
+            </div>
         </div>
     );
 }
+
+const Onbekend = () => <span className='text-muted-foreground font-normal'>onbekend</span>;
 
 // ---- The pop-up ---------------------------------------------------------------------------------------
 
@@ -237,40 +284,46 @@ function Inhoud({
                         </Dialog.Description>
                     </header>
 
-                    <div className='grid grid-cols-2 gap-2'>
-                        <Kpi label='Startinvestering' accent>
-                            <span
-                                className={
-                                    zaak.startkapitaal === null ? 'text-muted-foreground font-normal' : 'text-glow'
-                                }>
-                                {thb(zaak.startkapitaal)}
-                            </span>
-                        </Kpi>
-                        <Kpi label='Winst / maand'>
-                            {winst === null ? (
-                                <span className='text-muted-foreground font-normal'>onbekend</span>
-                            ) : (
-                                thb(winst)
-                            )}
-                        </Kpi>
-                        <Kpi label='Terugverdiend in'>
-                            <span className='flex items-center gap-2'>
-                                <span className={cn('size-2.5 rounded-full', BAND_DOT[b])} aria-hidden />
-                                {maanden(zaak.terugverdientijd)}
-                            </span>
-                        </Kpi>
-                        <Kpi label='Quitte bij'>
-                            {quitte === null ? (
-                                <span className='text-muted-foreground font-normal'>onbekend</span>
-                            ) : (
-                                <>
-                                    {getal(quitte)}{' '}
-                                    <span className='text-muted-foreground text-sm font-normal'>
-                                        {zaak.eenheid}/dag
-                                    </span>
-                                </>
-                            )}
-                        </Kpi>
+                    {/* Once: start and payback. Every month: in, out, left over. */}
+                    <div className='grid grid-cols-6 gap-2'>
+                        <div className='col-span-3'>
+                            <Kpi label='Startinvestering' accent>
+                                <span
+                                    className={
+                                        zaak.startkapitaal === null ? 'text-muted-foreground font-normal' : 'text-glow'
+                                    }>
+                                    {thb(zaak.startkapitaal)}
+                                </span>
+                            </Kpi>
+                        </div>
+                        <div className='col-span-3'>
+                            <Kpi label='Terugverdiend in'>
+                                <span className='flex items-center gap-2'>
+                                    <span className={cn('size-2.5 rounded-full', BAND_DOT[b])} aria-hidden />
+                                    {maanden(zaak.terugverdientijd)}
+                                </span>
+                            </Kpi>
+                        </div>
+                        <p className='text-muted-foreground col-span-6 mt-1 -mb-0.5 text-[11.5px]'>Per maand</p>
+                        <div className='col-span-2'>
+                            <Kpi label='Omzet' klein>
+                                {omzet === null ? <Onbekend /> : thb(omzet)}
+                            </Kpi>
+                        </div>
+                        <div className='col-span-2'>
+                            <Kpi label='Lasten' klein sterk>
+                                {lasten === null ? <Onbekend /> : thb(lasten)}
+                            </Kpi>
+                        </div>
+                        <div className='col-span-2'>
+                            <Kpi label='Winst' klein>
+                                {winst === null ? (
+                                    <Onbekend />
+                                ) : (
+                                    <span className='text-[var(--brand-ink)]'>{thb(winst)}</span>
+                                )}
+                            </Kpi>
+                        </div>
                     </div>
 
                     {zaak.opmerking && (
@@ -373,7 +426,7 @@ function Inhoud({
                     {/* Month: one scale, only profit in orange. */}
                     <Paneel
                         titel='Elke maand'
-                        meta={<span className='text-muted-foreground text-xs'>lasten {thb(lasten)}</span>}
+                        meta={<span className='text-muted-foreground text-xs'>omzet − lasten = winst</span>}
                         voet={
                             winst !== null && (
                                 <>
@@ -390,12 +443,18 @@ function Inhoud({
                         {omzet === null || winst === null ? (
                             <p className='text-muted-foreground py-2 text-sm'>Omzet en winst nog niet berekend.</p>
                         ) : (
-                            <div className='divide-y divide-stone-100'>
+                            <div>
                                 <StaafRij label='Omzet' waarde={omzet} max={omzet} />
-                                {inkoop !== null && <StaafRij label='Inkoop' waarde={inkoop} max={omzet} min />}
-                                {zaak.vasteKosten !== null && (
-                                    <StaafRij label='Huur, loon, nuts' waarde={zaak.vasteKosten} max={omzet} min />
-                                )}
+                                {/* The monthly costs as a total, with what they are made of indented under it. */}
+                                <div className='border-y border-stone-100 py-1'>
+                                    {lasten !== null && (
+                                        <StaafRij label='Lasten' waarde={lasten} max={omzet} min sterk />
+                                    )}
+                                    {inkoop !== null && <StaafRij label='Inkoop' waarde={inkoop} max={omzet} sub />}
+                                    {zaak.vasteKosten !== null && (
+                                        <StaafRij label='Huur, loon, nuts' waarde={zaak.vasteKosten} max={omzet} sub />
+                                    )}
+                                </div>
                                 <StaafRij label='Winst' waarde={winst} max={omzet} accent />
                             </div>
                         )}
