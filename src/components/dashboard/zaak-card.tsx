@@ -125,13 +125,25 @@ export function HartKnop({
 }
 
 /** One number on the card: a small label over the value; `klein` for the monthly row. */
-function Cel({ label, children, klein }: { label: string; children: ReactNode; klein?: boolean }) {
+function Cel({
+    label,
+    children,
+    klein,
+    onder
+}: {
+    label: string;
+    children: ReactNode;
+    klein?: boolean;
+    /** A small second line under the value. */
+    onder?: string;
+}) {
     return (
         <div className='min-w-0'>
             <dt className='text-muted-foreground truncate text-[11px]'>{label}</dt>
             <dd className={cn('readout truncate font-semibold', klein ? 'text-[13.5px]' : 'text-[15px]')}>
                 {children}
             </dd>
+            {onder && <dd className='text-muted-foreground readout truncate text-[11px]'>{onder}</dd>}
         </div>
     );
 }
@@ -211,15 +223,23 @@ export function ZaakCard({
                                 {zaak.terugverdientijd === null ? '–' : maanden(zaak.terugverdientijd)}
                             </span>
                         </Cel>
-                        <Cel label={t('kaartQuitte')}>
-                            {zaak.klantenNodig === null ? (
+                        {/* What has to be sold a day for the profit below, at what price; break-even under it. */}
+                        <Cel
+                            label={t('kaartVerkoop')}
+                            onder={
+                                zaak.klantenNodig !== null ? `${t('quitte')} ${getal(zaak.klantenNodig)}` : undefined
+                            }>
+                            {zaak.verwachtKlanten === null ? (
                                 '–'
                             ) : (
                                 <>
-                                    {getal(zaak.klantenNodig)}
-                                    <span className='text-muted-foreground text-[11px] font-normal'>
-                                        {t('perDagKort')}
-                                    </span>
+                                    {getal(zaak.verwachtKlanten)}
+                                    {zaak.bestedingPerKlant !== null && (
+                                        <span className='text-muted-foreground font-normal'>
+                                            {' × '}
+                                            {geld(zaak.bestedingPerKlant)}
+                                        </span>
+                                    )}
                                 </>
                             )}
                         </Cel>
