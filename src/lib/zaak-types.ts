@@ -25,6 +25,8 @@ export type Zaak = {
     klantenNodig: number | null;
     /** What a "klant" is for this business: klanten, kopjes, auto's, wasbeurten. */
     eenheid: string;
+    /** Days open a month for this type (from the assumptions table); turnover = customers × spend × days. */
+    openDagen: number | null;
     verwachtKlanten: number | null;
     winstPerMaand: number | null;
     terugverdientijd: number | null;

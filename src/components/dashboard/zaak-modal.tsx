@@ -304,7 +304,18 @@ function Inhoud({
                                 </span>
                             </Kpi>
                         </div>
-                        <p className='text-muted-foreground col-span-6 mt-1 -mb-0.5 text-[11.5px]'>Per maand</p>
+                        <p className='text-muted-foreground col-span-6 mt-1 -mb-0.5 text-[11.5px]'>
+                            Per maand
+                            {verwacht !== null && (
+                                <>
+                                    {' '}
+                                    · bij{' '}
+                                    <span className='text-foreground font-medium'>
+                                        {getal(verwacht)} {zaak.eenheid}/dag
+                                    </span>
+                                </>
+                            )}
+                        </p>
                         <div className='col-span-2'>
                             <Kpi label='Omzet' klein>
                                 {omzet === null ? <Onbekend /> : thb(omzet)}
@@ -445,6 +456,15 @@ function Inhoud({
                         ) : (
                             <div>
                                 <StaafRij label='Omzet' waarde={omzet} max={omzet} />
+                                {/* Where the turnover comes from: the expected customers a day. */}
+                                {verwacht !== null && zaak.bestedingPerKlant !== null && zaak.openDagen !== null && (
+                                    <p className='text-muted-foreground -mt-1 pb-1.5 pl-3 text-[12px]'>
+                                        <span className='text-foreground font-medium'>
+                                            {getal(verwacht)} {zaak.eenheid}/dag
+                                        </span>{' '}
+                                        × {thb(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
+                                    </p>
+                                )}
                                 {/* The monthly costs as a total, with what they are made of indented under it. */}
                                 <div className='border-y border-stone-100 py-1'>
                                     {lasten !== null && (

@@ -248,6 +248,7 @@ export async function loadZaken(): Promise<ZakenData> {
             bestedingPerKlant: num(r[C.besteding]),
             klantenNodig: num(nodigRaw),
             eenheid: nodigRaw.replace(/^[\d,.\s]+/, '').trim() || unitFor(type),
+            openDagen: aannames.find((a) => a.type === type)?.openDagen ?? null,
             verwachtKlanten: num(r[C.verwacht]),
             winstPerMaand: num(r[C.winst]),
             terugverdientijd: num(r[C.terug]),
