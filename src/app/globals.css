@@ -83,6 +83,8 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
+    /* Wide monitors: 4 cards in a row from here. */
+    --breakpoint-3xl: 112.5rem;
 }
 
 @layer base {

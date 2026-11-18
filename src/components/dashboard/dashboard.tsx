@@ -370,7 +370,7 @@ export function Dashboard({ data }: { data: ZakenData }) {
                 </div>
 
                 {lijst.length ? (
-                    <div className='mt-4 grid gap-4 sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]'>
+                    <div className='3xl:grid-cols-4 mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3'>
                         {lijst.map((z) => (
                             <ZaakCard
                                 key={z.id}
