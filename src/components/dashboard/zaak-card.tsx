@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 
-import { maanden, thb } from '@/lib/format';
+import { maanden } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useGeld } from '@/lib/valuta';
 import { type Band, type Zaak, band } from '@/lib/zaak-types';
 
 import {
@@ -132,6 +133,7 @@ export function ZaakCard({
     onFavoriet: () => void;
     onOpen: () => void;
 }) {
+    const { geld } = useGeld();
     const b = band(zaak.terugverdientijd);
     const { winst } = cijfers(zaak);
 
@@ -183,13 +185,13 @@ export function ZaakCard({
                     <div className='min-w-0'>
                         <dt className='text-muted-foreground text-[11px]'>Start</dt>
                         <dd className='readout truncate text-[15px] font-semibold text-[var(--brand-ink)]'>
-                            {zaak.startkapitaal === null ? '–' : thb(zaak.startkapitaal)}
+                            {zaak.startkapitaal === null ? '–' : geld(zaak.startkapitaal)}
                         </dd>
                     </div>
                     <div className='min-w-0'>
                         <dt className='text-muted-foreground text-[11px]'>Winst / mnd</dt>
                         <dd className='readout truncate text-[15px] font-semibold'>
-                            {winst === null ? '–' : <span className='text-emerald-700'>{thb(winst)}</span>}
+                            {winst === null ? '–' : <span className='text-emerald-700'>{geld(winst)}</span>}
                         </dd>
                     </div>
                     <div className='min-w-0'>

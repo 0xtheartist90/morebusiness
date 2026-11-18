@@ -3,8 +3,9 @@
 import type { ReactNode } from 'react';
 
 import { BAND_DOT, BAND_PILL, Foto, HartKnop, cijfers } from '@/components/dashboard/zaak-card';
-import { getal, kosten, maanden, telHref, thb } from '@/lib/format';
+import { getal, maanden, telHref } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useGeld } from '@/lib/valuta';
 import { type Zaak, band, enkelvoud } from '@/lib/zaak-types';
 import * as Dialog from '@radix-ui/react-dialog';
 
@@ -77,6 +78,8 @@ function StaafRij({
     /** A part of the total above: indented, smaller, light bar. */
     sub?: boolean;
 }) {
+    const { geld } = useGeld();
+
     return (
         <div
             className={cn(
@@ -109,7 +112,7 @@ function StaafRij({
                     sub && 'text-muted-foreground'
                 )}>
                 {min ? '\u2212\u2009' : ''}
-                {thb(waarde)}
+                {geld(waarde)}
             </span>
         </div>
     );
@@ -234,6 +237,7 @@ function Inhoud({
     positie?: number;
     totaal?: number;
 }) {
+    const { geld, kosten: geldKosten } = useGeld();
     const b = band(zaak.terugverdientijd);
     const { omzet, winst, lasten, inkoop, buffer, marge } = cijfers(zaak);
     const tel = telHref(zaak.telefoon);
@@ -293,7 +297,7 @@ function Inhoud({
                                     className={
                                         zaak.startkapitaal === null ? 'text-muted-foreground font-normal' : 'text-glow'
                                     }>
-                                    {thb(zaak.startkapitaal)}
+                                    {geld(zaak.startkapitaal)}
                                 </span>
                             </Kpi>
                         </div>
@@ -319,17 +323,21 @@ function Inhoud({
                         </p>
                         <div className='col-span-2'>
                             <Kpi label='Omzet' klein>
-                                {omzet === null ? <Onbekend /> : thb(omzet)}
+                                {omzet === null ? <Onbekend /> : geld(omzet)}
                             </Kpi>
                         </div>
                         <div className='col-span-2'>
                             <Kpi label='Lasten' klein sterk>
-                                {lasten === null ? <Onbekend /> : <span className='text-rose-700'>{thb(lasten)}</span>}
+                                {lasten === null ? <Onbekend /> : <span className='text-rose-700'>{geld(lasten)}</span>}
                             </Kpi>
                         </div>
                         <div className='col-span-2'>
                             <Kpi label='Winst' klein>
-                                {winst === null ? <Onbekend /> : <span className='text-emerald-700'>{thb(winst)}</span>}
+                                {winst === null ? (
+                                    <Onbekend />
+                                ) : (
+                                    <span className='text-emerald-700'>{geld(winst)}</span>
+                                )}
                             </Kpi>
                         </div>
                     </div>
@@ -419,15 +427,15 @@ function Inhoud({
                         voet={
                             <>
                                 <span>Totaal nodig</span>
-                                <span className='readout text-[var(--brand-ink)]'>{thb(zaak.startkapitaal)}</span>
+                                <span className='readout text-[var(--brand-ink)]'>{geld(zaak.startkapitaal)}</span>
                             </>
                         }>
                         <div className='divide-y divide-stone-100'>
-                            <Rij label='Overname' waarde={thb(zaak.overname)} />
-                            <Rij label='Borg' waarde={kosten(zaak.borg)} />
-                            <Rij label='Huur vooruit' waarde={kosten(zaak.huurVooruit)} />
-                            <Rij label='Eenmalig' waarde={thb(zaak.eenmalig)} sterk />
-                            <Rij label='Buffer' hint='1 maand lasten' waarde={thb(buffer)} />
+                            <Rij label='Overname' waarde={geld(zaak.overname)} />
+                            <Rij label='Borg' waarde={geldKosten(zaak.borg)} />
+                            <Rij label='Huur vooruit' waarde={geldKosten(zaak.huurVooruit)} />
+                            <Rij label='Eenmalig' waarde={geld(zaak.eenmalig)} sterk />
+                            <Rij label='Buffer' hint='1 maand lasten' waarde={geld(buffer)} />
                         </div>
                     </Paneel>
 
@@ -444,7 +452,7 @@ function Inhoud({
                                             <span className='text-muted-foreground font-normal'>· marge {marge}%</span>
                                         )}
                                     </span>
-                                    <span className='readout text-emerald-700'>{thb(winst)}</span>
+                                    <span className='readout text-emerald-700'>{geld(winst)}</span>
                                 </>
                             )
                         }>
@@ -459,7 +467,7 @@ function Inhoud({
                                         <span className='text-foreground font-medium'>
                                             {getal(verwacht)} {zaak.eenheid}/dag
                                         </span>{' '}
-                                        × {thb(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
+                                        × {geld(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
                                     </p>
                                 )}
                                 {/* The monthly costs as a total, with what they are made of indented under it. */}
@@ -517,9 +525,9 @@ function Inhoud({
                                 <div className='mt-4 grid grid-cols-3 divide-x border-t pt-3'>
                                     <Mini
                                         label={`Per ${enkelvoud(zaak.eenheid)}`}
-                                        waarde={thb(zaak.bestedingPerKlant)}
+                                        waarde={geld(zaak.bestedingPerKlant)}
                                     />
-                                    <Mini label='Omzet quitte' waarde={thb(zaak.breakEvenOmzetDag)} />
+                                    <Mini label='Omzet quitte' waarde={geld(zaak.breakEvenOmzetDag)} />
                                     <Mini label='Boven quitte' waarde={boven === null ? 'onbekend' : `+${boven}%`} />
                                 </div>
                             </div>
@@ -535,8 +543,8 @@ function Inhoud({
                             </span>
                         }>
                         <div className='divide-y divide-stone-100'>
-                            <Rij label='Huur / maand' waarde={thb(zaak.huur)} />
-                            <Rij label='Vaste kosten / mnd' waarde={thb(zaak.vasteKosten)} />
+                            <Rij label='Huur / maand' waarde={geld(zaak.huur)} />
+                            <Rij label='Vaste kosten / mnd' waarde={geld(zaak.vasteKosten)} />
                             <Rij label='Telefoon' waarde={zaak.telefoon ?? 'onbekend'} />
                             <Rij
                                 label='Verwacht / dag'
