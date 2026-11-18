@@ -237,7 +237,9 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                             <span className={cn('led', !data.live && 'bg-stone-400 shadow-none')} />
                             {data.live ? 'Live uit Google Sheet' : 'Lokale kopie (sheet niet bereikbaar)'}
                         </p>
-                        <p className='mt-1'>Bijgewerkt {data.bijgewerkt ?? 'onbekend'} · bedragen in {f.valuta}</p>
+                        <p className='mt-1'>
+                            Bijgewerkt {data.bijgewerkt ?? 'onbekend'} · bedragen in {f.valuta}
+                        </p>
                         <a
                             href={data.sheetUrl}
                             target='_blank'

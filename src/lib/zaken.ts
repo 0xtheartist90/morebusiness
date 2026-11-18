@@ -3,7 +3,7 @@
 // "anyone with the link can view". If it can't be reached, a local data/zaken.xlsx (or .csv) is used instead.
 // Columns are found by their header, so moved columns still work.
 import { readFirstSheet } from '@/lib/xlsx';
-import type { Aanname, Bron, Kosten, Zaak, ZakenData } from '@/lib/zaak-types';
+import type { Aanname, Bron, InkoopDeel, Kosten, Zaak, ZakenData } from '@/lib/zaak-types';
 
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -132,6 +132,15 @@ function fotoUrl(u: string | null): string | null {
     return id ? `https://lh3.googleusercontent.com/d/${id}=w1200` : u;
 }
 
+/** "bonen ~12%, melk ~10%, bekers/deksels ~5%" → [{ label: 'bonen', pct: 12 }, …]; parts without a % are skipped. */
+function inkoopDelen(v: string | undefined): InkoopDeel[] {
+    return clean(v)
+        .split(/[,;]/)
+        .map((deel) => deel.trim().match(/^(.*?)\s*~?\s*(\d+(?:[.,]\d+)?)\s*%/))
+        .filter((m): m is RegExpMatchArray => !!m && !!m[1])
+        .map((m) => ({ label: m[1].trim(), pct: Number(m[2].replace(',', '.')) }));
+}
+
 function bron(opmerking: string | null): Bron {
     if (!opmerking) return 'Overig';
     if (/^FB\b/i.test(opmerking)) return 'FB';
@@ -207,7 +216,8 @@ export async function loadZaken(): Promise<ZakenData> {
                 // "35%" in a CSV, 0.35 in an xlsx.
                 inkoopPct: ((n) => (n !== null && n <= 1 ? Math.round(n * 1000) / 10 : n))(num(r[4])),
                 eenheid: clean(r[5]) || 'klanten',
-                openDagen: num(r[6])
+                openDagen: num(r[6]),
+                inkoopDelen: inkoopDelen(r[7])
             });
         }
     }
@@ -249,6 +259,12 @@ export async function loadZaken(): Promise<ZakenData> {
             klantenNodig: num(nodigRaw),
             eenheid: nodigRaw.replace(/^[\d,.\s]+/, '').trim() || unitFor(type),
             openDagen: aannames.find((a) => a.type === type)?.openDagen ?? null,
+            // The fixed monthly costs as the sheet adds them up: rent + wage + utilities + other (per type).
+            loon,
+            nuts: aannames.find((a) => a.type === type)?.nuts ?? null,
+            overigKosten: aannames.find((a) => a.type === type)?.overig ?? null,
+            inkoopPct: aannames.find((a) => a.type === type)?.inkoopPct ?? null,
+            inkoopDelen: aannames.find((a) => a.type === type)?.inkoopDelen ?? [],
             verwachtKlanten: num(r[C.verwacht]),
             winstPerMaand: num(r[C.winst]),
             terugverdientijd: num(r[C.terug]),

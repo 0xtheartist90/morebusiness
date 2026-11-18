@@ -118,6 +118,18 @@ function StaafRij({
     );
 }
 
+/** One part of the stock, under "Inkoop": smaller still, no bar, just label, share and amount. */
+function Deel({ label, hint, waarde }: { label: string; hint: string; waarde: string }) {
+    return (
+        <div className='text-muted-foreground grid h-6 grid-cols-[1fr_auto] items-center gap-3 pl-6 text-[12px]'>
+            <span className='truncate'>
+                {label} <span className='opacity-70'>· {hint}</span>
+            </span>
+            <span className='readout'>{waarde}</span>
+        </div>
+    );
+}
+
 /** A small number in a row of three, under the customer meter. */
 function Mini({ label, waarde }: { label: string; waarde: string }) {
     return (
@@ -246,6 +258,21 @@ function Inhoud({
     const meterMax = Math.max(quitte ?? 0, verwacht ?? 0) * 1.25 || 1;
     const pct = (n: number) => `${Math.min(100, (n / meterMax) * 100)}%`;
     const boven = verwacht !== null && quitte ? Math.round((verwacht / quitte - 1) * 100) : null;
+    // Fixed costs as the sheet adds them up: rent + wage + utilities + other. "Overig" takes up any rounding, so the
+    // parts always add up to the sheet's total. Null when a part is missing (then one combined row is shown).
+    const vast = (() => {
+        const { huur, loon, nuts, vasteKosten } = zaak;
+        if (huur === null || loon === null || nuts === null || vasteKosten === null) return null;
+        const overig = vasteKosten - huur - loon - nuts;
+        if (overig < 0) return null;
+
+        return [
+            { label: 'Huur', waarde: huur },
+            { label: 'Loon · 1 medewerker', waarde: loon },
+            { label: 'Nuts · water, stroom', waarde: nuts },
+            { label: 'Overig', waarde: overig }
+        ].filter((v) => v.waarde > 0);
+    })();
     const ronde = 'grid size-9 place-items-center rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white';
     const navKnop = 'btn-key grid size-8 place-items-center rounded-lg disabled:opacity-40';
 
@@ -411,7 +438,7 @@ function Inhoud({
                     </div>
                 </div>
 
-                <div className='grid auto-rows-fr gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 xl:grid-cols-2'>
+                <div className='grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 xl:grid-cols-2 xl:items-start'>
                     {/* Start: the sum, ending in the total. */}
                     <Paneel
                         titel='Startinvestering'
@@ -435,55 +462,102 @@ function Inhoud({
                             <Rij label='Borg' waarde={geldKosten(zaak.borg)} />
                             <Rij label='Huur vooruit' waarde={geldKosten(zaak.huurVooruit)} />
                             <Rij label='Eenmalig' waarde={geld(zaak.eenmalig)} sterk />
-                            <Rij label='Buffer' hint='1 maand lasten' waarde={geld(buffer)} />
+                            <Rij label='Buffer' hint='lasten 1e maand + 1 week inkoop' waarde={geld(buffer)} />
                         </div>
                     </Paneel>
 
-                    {/* Month: one scale, only profit in orange. */}
-                    <Paneel
-                        titel='Elke maand'
-                        meta={<span className='text-muted-foreground text-xs'>omzet − lasten = winst</span>}
-                        voet={
-                            winst !== null && (
-                                <>
-                                    <span>
-                                        Winst{' '}
-                                        {marge !== null && (
-                                            <span className='text-muted-foreground font-normal'>· marge {marge}%</span>
+                    {/* Month: the full sum, costs broken down the way the sheet adds them up. Spans both rows. */}
+                    <div className='xl:row-span-2'>
+                        <Paneel
+                            titel='Elke maand'
+                            meta={<span className='text-muted-foreground text-xs'>omzet − lasten = winst</span>}
+                            voet={
+                                winst !== null && (
+                                    <>
+                                        <span>
+                                            Winst{' '}
+                                            {marge !== null && (
+                                                <span className='text-muted-foreground font-normal'>
+                                                    · marge {marge}%
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className='readout text-emerald-700'>{geld(winst)}</span>
+                                    </>
+                                )
+                            }>
+                            {omzet === null || winst === null ? (
+                                <p className='text-muted-foreground py-2 text-sm'>Omzet en winst nog niet berekend.</p>
+                            ) : (
+                                <div>
+                                    <StaafRij label='Omzet' waarde={omzet} max={omzet} />
+                                    {/* Where the turnover comes from: the expected customers a day. */}
+                                    {verwacht !== null &&
+                                        zaak.bestedingPerKlant !== null &&
+                                        zaak.openDagen !== null && (
+                                            <p className='text-muted-foreground -mt-1 pb-1.5 pl-3 text-[12px]'>
+                                                <span className='text-foreground font-medium'>
+                                                    {getal(verwacht)} {zaak.eenheid}/dag
+                                                </span>{' '}
+                                                × {geld(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
+                                            </p>
                                         )}
-                                    </span>
-                                    <span className='readout text-emerald-700'>{geld(winst)}</span>
-                                </>
-                            )
-                        }>
-                        {omzet === null || winst === null ? (
-                            <p className='text-muted-foreground py-2 text-sm'>Omzet en winst nog niet berekend.</p>
-                        ) : (
-                            <div>
-                                <StaafRij label='Omzet' waarde={omzet} max={omzet} />
-                                {/* Where the turnover comes from: the expected customers a day. */}
-                                {verwacht !== null && zaak.bestedingPerKlant !== null && zaak.openDagen !== null && (
-                                    <p className='text-muted-foreground -mt-1 pb-1.5 pl-3 text-[12px]'>
-                                        <span className='text-foreground font-medium'>
-                                            {getal(verwacht)} {zaak.eenheid}/dag
-                                        </span>{' '}
-                                        × {geld(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
-                                    </p>
-                                )}
-                                {/* The monthly costs as a total, with what they are made of indented under it. */}
-                                <div className='border-y border-stone-100 py-1'>
-                                    {lasten !== null && (
-                                        <StaafRij label='Lasten' waarde={lasten} max={omzet} min sterk />
-                                    )}
-                                    {inkoop !== null && <StaafRij label='Inkoop' waarde={inkoop} max={omzet} sub />}
-                                    {zaak.vasteKosten !== null && (
-                                        <StaafRij label='Huur, loon, nuts' waarde={zaak.vasteKosten} max={omzet} sub />
-                                    )}
+
+                                    <div className='border-y border-stone-100 py-1.5'>
+                                        {lasten !== null && (
+                                            <StaafRij label='Lasten' waarde={lasten} max={omzet} min sterk />
+                                        )}
+
+                                        {/* Stock: a share of turnover, with what it is made of. */}
+                                        {inkoop !== null && (
+                                            <>
+                                                <StaafRij
+                                                    label={
+                                                        zaak.inkoopPct !== null
+                                                            ? `Inkoop · ${getal(zaak.inkoopPct)}%`
+                                                            : 'Inkoop'
+                                                    }
+                                                    waarde={inkoop}
+                                                    max={omzet}
+                                                    sub
+                                                />
+                                                {zaak.inkoopDelen.map((d) => (
+                                                    <Deel
+                                                        key={d.label}
+                                                        label={d.label}
+                                                        hint={`${getal(d.pct)}%`}
+                                                        waarde={geld((omzet * d.pct) / 100)}
+                                                    />
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* Fixed costs: rent, wage, utilities, other. */}
+                                        {vast ? (
+                                            vast.map((v) => (
+                                                <StaafRij
+                                                    key={v.label}
+                                                    label={v.label}
+                                                    waarde={v.waarde}
+                                                    max={omzet}
+                                                    sub
+                                                />
+                                            ))
+                                        ) : zaak.vasteKosten !== null ? (
+                                            <StaafRij
+                                                label='Huur, loon, nuts'
+                                                waarde={zaak.vasteKosten}
+                                                max={omzet}
+                                                sub
+                                            />
+                                        ) : null}
+                                    </div>
+
+                                    <StaafRij label='Winst' waarde={winst} max={omzet} accent />
                                 </div>
-                                <StaafRij label='Winst' waarde={winst} max={omzet} accent />
-                            </div>
-                        )}
-                    </Paneel>
+                            )}
+                        </Paneel>
+                    </div>
 
                     {/* Per day: break-even against expected. */}
                     <Paneel
@@ -532,25 +606,6 @@ function Inhoud({
                                 </div>
                             </div>
                         )}
-                    </Paneel>
-
-                    {/* Details. */}
-                    <Paneel
-                        titel='Details'
-                        meta={
-                            <span className='text-muted-foreground text-xs'>
-                                {zaak.bron === 'FB' ? 'Facebook' : zaak.bron}
-                            </span>
-                        }>
-                        <div className='divide-y divide-stone-100'>
-                            <Rij label='Huur / maand' waarde={geld(zaak.huur)} />
-                            <Rij label='Vaste kosten / mnd' waarde={geld(zaak.vasteKosten)} />
-                            <Rij label='Telefoon' waarde={zaak.telefoon ?? 'onbekend'} />
-                            <Rij
-                                label='Verwacht / dag'
-                                waarde={verwacht === null ? 'onbekend' : `${getal(verwacht)} ${zaak.eenheid}`}
-                            />
-                        </div>
                     </Paneel>
                 </div>
 

@@ -27,6 +27,13 @@ export type Zaak = {
     eenheid: string;
     /** Days open a month for this type (from the assumptions table); turnover = customers × spend × days. */
     openDagen: number | null;
+    /** Monthly wage of one employee, utilities and other costs for this type, and stock as % of turnover. */
+    loon: number | null;
+    /** What the stock is made of, as shares of turnover (from the sheet's "Inkoop breakdown"). */
+    inkoopDelen: InkoopDeel[];
+    nuts: number | null;
+    overigKosten: number | null;
+    inkoopPct: number | null;
     verwachtKlanten: number | null;
     winstPerMaand: number | null;
     terugverdientijd: number | null;
@@ -43,6 +50,9 @@ export type Zaak = {
     bron: Bron;
 };
 
+/** One part of the stock bought, e.g. { label: 'bonen', pct: 12 } (% of turnover). */
+export type InkoopDeel = { label: string; pct: number };
+
 export type Aanname = {
     type: string;
     nuts: number | null;
@@ -50,6 +60,7 @@ export type Aanname = {
     inkoopPct: number | null;
     eenheid: string;
     openDagen: number | null;
+    inkoopDelen: InkoopDeel[];
 };
 
 export type ZakenData = {
