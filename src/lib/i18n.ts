@@ -8,10 +8,10 @@ import type { ReactNode } from 'react';
 
 export type Taal = 'en' | 'th' | 'nl';
 
-export const TALEN: { code: Taal; label: string }[] = [
-    { code: 'en', label: 'EN' },
-    { code: 'th', label: 'TH' },
-    { code: 'nl', label: 'NL' }
+export const TALEN: { code: Taal; naam: string }[] = [
+    { code: 'en', naam: 'English' },
+    { code: 'th', naam: 'ไทย' },
+    { code: 'nl', naam: 'Nederlands' }
 ];
 
 export const LOCALE: Record<Taal, string> = { en: 'en-US', th: 'th-TH', nl: 'nl-NL' };

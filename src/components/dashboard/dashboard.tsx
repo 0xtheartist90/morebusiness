@@ -11,7 +11,17 @@ import { cn } from '@/lib/utils';
 import { GeldProvider, type Koersen, VALUTA, type Valuta, useGeld } from '@/lib/valuta';
 import type { Zaak, ZakenData } from '@/lib/zaak-types';
 
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, Heart, LayoutGrid, Search } from 'lucide-react';
+import {
+    ArrowDownWideNarrow,
+    ArrowUpNarrowWide,
+    Banknote,
+    ChevronDown,
+    Globe,
+    Heart,
+    LayoutGrid,
+    Search
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // ---- Sorting and the few filters there are ---------------------------------------------------
 
@@ -208,7 +218,7 @@ function Overzicht({
 }) {
     const { zaken } = data;
     const { ids: favs, toggle } = useFavorieten();
-    const { t, woord } = useT();
+    const { t, woord, locale } = useT();
 
     const lijst = useMemo(() => filterZaken(zaken, f, favs), [zaken, f, favs]);
     // The business open in the pop-up; previous/next walk the current (filtered, sorted) list.
@@ -285,74 +295,74 @@ function Overzicht({
                 </aside>
 
                 <main className='px-4 pt-4 pb-12 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8'>
-                    {/* One toolbar: type on the left, sort on the right. */}
-                    <div className='mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
-                        <div className='no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:px-0'>
-                            {/* No sidebar on phones: favourites sit with the types. */}
-                            <span className='contents lg:hidden'>
-                                <Chip active={f.favorieten} onClick={() => set({ favorieten: !f.favorieten })}>
-                                    <Heart
-                                        className={cn(
-                                            'size-3.5',
-                                            f.favorieten && 'fill-[var(--brand)] text-[var(--brand)]'
-                                        )}
-                                    />
-                                    {t('favorieten')}
-                                    <span className='readout text-xs opacity-50'>{nFav}</span>
-                                </Chip>
-                            </span>
-                            <Chip active={!f.type} onClick={() => set({ type: null })}>
-                                {t('alleTypes')}
+                    {/* One calm toolbar: type and favourites left; refresh, sort, language and currency right. */}
+                    <div className='mt-5 flex flex-wrap items-center gap-2'>
+                        <Keuze
+                            className='min-w-0 flex-1 sm:flex-none'
+                            label={t('kolType')}
+                            icon={f.type ? typeIcon(f.type) : LayoutGrid}
+                            value={f.type ?? ''}
+                            onChange={(v) => set({ type: v || null })}
+                            options={[
+                                { value: '', label: `${t('alleTypes')} (${zaken.length})` },
+                                ...types.map(([type, n]) => ({ value: type, label: `${woord(type)} (${n})` }))
+                            ]}
+                        />
+                        {/* No sidebar on phones: favourites sit next to the type. */}
+                        <span className='lg:hidden'>
+                            <Chip active={f.favorieten} onClick={() => set({ favorieten: !f.favorieten })}>
+                                <Heart
+                                    className={cn(
+                                        'size-3.5',
+                                        f.favorieten && 'fill-[var(--brand)] text-[var(--brand)]'
+                                    )}
+                                />
+                                {t('favorieten')}
+                                <span className='readout text-xs opacity-50'>{nFav}</span>
                             </Chip>
-                            {types.map(([type, n]) => {
-                                const Icon = typeIcon(type);
+                        </span>
 
-                                return (
-                                    <Chip
-                                        key={type}
-                                        active={f.type === type}
-                                        onClick={() => set({ type: f.type === type ? null : type })}>
-                                        <Icon className='size-3.5' />
-                                        {woord(type)}
-                                        <span className='readout text-xs opacity-50'>{n}</span>
-                                    </Chip>
-                                );
-                            })}
-                        </div>
-
-                        <div className='flex flex-wrap items-center gap-1.5 md:shrink-0 md:flex-nowrap'>
-                            <TaalKeuze taal={f.taal} onChange={(taal) => set({ taal })} />
-                            <ValutaKeuze valuta={f.valuta} koersen={koersen} onChange={(valuta) => set({ valuta })} />
-                            <VernieuwKnop className='mr-1' />
-                            <label className='relative'>
-                                <span className='sr-only'>{t('sorterenOp')}</span>
-                                <select
+                        <div className='flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto'>
+                            <VernieuwKnop />
+                            <div className='flex items-center gap-1'>
+                                <Keuze
+                                    label={t('sorterenOp')}
                                     value={f.sort}
-                                    onChange={(e) => {
-                                        const s = SORTS.find((x) => x.key === e.target.value) ?? SORTS[0];
+                                    onChange={(v) => {
+                                        const s = SORTS.find((x) => x.key === v) ?? SORTS[0];
                                         set({ sort: s.key, asc: s.asc });
                                     }}
-                                    className='btn-key h-9 cursor-pointer appearance-none rounded-xl pr-8 pl-3 text-[13px] font-medium'>
-                                    {SORTS.map((s) => (
-                                        <option key={s.key} value={s.key}>
-                                            {t(s.label)}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className='text-muted-foreground pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2' />
-                            </label>
-                            <button
-                                type='button'
-                                onClick={() => set({ asc: !f.asc })}
-                                aria-label={f.asc ? t('laagHoog') : t('hoogLaag')}
-                                title={f.asc ? t('laagHoog') : t('hoogLaag')}
-                                className='btn-key grid size-9 shrink-0 place-items-center rounded-xl'>
-                                {f.asc ? (
-                                    <ArrowUpNarrowWide className='size-4 text-[var(--brand-ink)]' />
-                                ) : (
-                                    <ArrowDownWideNarrow className='size-4 text-[var(--brand-ink)]' />
-                                )}
-                            </button>
+                                    options={SORTS.map((s) => ({ value: s.key, label: t(s.label) }))}
+                                />
+                                <button
+                                    type='button'
+                                    onClick={() => set({ asc: !f.asc })}
+                                    aria-label={f.asc ? t('laagHoog') : t('hoogLaag')}
+                                    title={f.asc ? t('laagHoog') : t('hoogLaag')}
+                                    className='btn-key grid size-9 shrink-0 place-items-center rounded-xl'>
+                                    {f.asc ? (
+                                        <ArrowUpNarrowWide className='size-4 text-[var(--brand-ink)]' />
+                                    ) : (
+                                        <ArrowDownWideNarrow className='size-4 text-[var(--brand-ink)]' />
+                                    )}
+                                </button>
+                            </div>
+                            <span className='bg-border mx-0.5 hidden h-6 w-px sm:block' aria-hidden />
+                            <Keuze
+                                label={t('taal')}
+                                icon={Globe}
+                                value={f.taal}
+                                onChange={(v) => set({ taal: v as Taal })}
+                                options={TALEN.map(({ code, naam }) => ({ value: code, label: naam }))}
+                            />
+                            <Keuze
+                                label={t('valuta')}
+                                icon={Banknote}
+                                value={f.valuta}
+                                onChange={(v) => set({ valuta: v as Valuta })}
+                                options={VALUTA.map((v) => ({ value: v, label: v }))}
+                                title={koersUitleg(koersen, t, locale)}
+                            />
                         </div>
                     </div>
 
@@ -410,73 +420,55 @@ function Overzicht({
     );
 }
 
-/** EN / TH / NL, next to the currency. */
-function TaalKeuze({ taal, onChange }: { taal: Taal; onChange: (t: Taal) => void }) {
-    const { t } = useT();
-
+/** A compact dropdown in the toolbar's style: optional icon, the chosen value, a chevron. */
+function Keuze({
+    label,
+    value,
+    options,
+    onChange,
+    icon: Icon,
+    title,
+    className
+}: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (v: string) => void;
+    icon?: LucideIcon;
+    title?: string;
+    className?: string;
+}) {
     return (
-        <div role='radiogroup' aria-label={t('taal')} className='track flex h-9 items-center rounded-xl p-1'>
-            {TALEN.map(({ code, label }) => (
-                <button
-                    key={code}
-                    type='button'
-                    role='radio'
-                    aria-checked={taal === code}
-                    lang={code}
-                    onClick={() => onChange(code)}
-                    className={cn(
-                        'h-7 rounded-lg px-2.5 text-[12.5px] font-semibold transition-colors',
-                        taal === code
-                            ? 'bg-white text-[var(--brand-ink)] shadow-[0_1px_2px_rgb(40_24_10/0.08),0_2px_6px_-2px_rgb(40_24_10/0.12)]'
-                            : 'text-muted-foreground hover:text-foreground'
-                    )}>
-                    {label}
-                </button>
-            ))}
-        </div>
+        <label className={cn('relative inline-flex', className)} title={title}>
+            <span className='sr-only'>{label}</span>
+            {Icon && (
+                <Icon className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--brand-ink)]' />
+            )}
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={cn(
+                    'btn-key h-9 w-full max-w-[16rem] cursor-pointer appearance-none truncate rounded-xl pr-8 text-[13px] font-medium',
+                    Icon ? 'pl-9' : 'pl-3'
+                )}>
+                {options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                        {o.label}
+                    </option>
+                ))}
+            </select>
+            <ChevronDown className='text-muted-foreground pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2' />
+        </label>
     );
 }
 
-/** THB / EUR / USD. The sheet is in THB; the others use the day's ECB rate (shown on hover). */
-function ValutaKeuze({
-    valuta,
-    koersen,
-    onChange
-}: {
-    valuta: Valuta;
-    koersen: Koersen;
-    onChange: (v: Valuta) => void;
-}) {
-    const { t, locale } = useT();
-    const nl = (n: number) => n.toLocaleString(locale, { maximumFractionDigits: 2 });
-    const uitleg = `1 € = ฿ ${nl(1 / koersen.EUR)} · 1 $ = ฿ ${nl(1 / koersen.USD)}${
+/** The day's rates, shown on hover over the currency. The sheet is in THB; EUR and USD use the ECB rate. */
+function koersUitleg(koersen: Koersen, t: ReturnType<typeof useT>['t'], locale: string) {
+    const n = (x: number) => x.toLocaleString(locale, { maximumFractionDigits: 2 });
+
+    return `1 € = ฿ ${n(1 / koersen.EUR)} · 1 $ = ฿ ${n(1 / koersen.USD)}${
         koersen.datum ? ` (ECB, ${koersen.datum})` : ''
     }${koersen.live ? '' : ` · ${t('vasteKoers')}`}`;
-
-    return (
-        <div
-            role='radiogroup'
-            aria-label={t('valuta')}
-            title={uitleg}
-            className='track flex h-9 items-center rounded-xl p-1'>
-            {VALUTA.map((v) => (
-                <button
-                    key={v}
-                    type='button'
-                    role='radio'
-                    aria-checked={valuta === v}
-                    onClick={() => onChange(v)}
-                    className={cn(
-                        'h-7 rounded-lg px-2.5 text-[12.5px] font-semibold transition-colors',
-                        valuta === v
-                            ? 'bg-white text-[var(--brand-ink)] shadow-[0_1px_2px_rgb(40_24_10/0.08),0_2px_6px_-2px_rgb(40_24_10/0.12)]'
-                            : 'text-muted-foreground hover:text-foreground'
-                    )}>
-                    {v}
-                </button>
-            ))}
-        </div>
-    );
 }
 
 function Aannames({ data }: { data: ZakenData }) {

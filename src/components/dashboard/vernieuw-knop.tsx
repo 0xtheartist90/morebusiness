@@ -27,12 +27,13 @@ export function VernieuwKnop({ className }: { className?: string }) {
                 })
             }
             title={t('vernieuwTitel')}
+            aria-label={t('vernieuwen')}
             className={cn(
                 'btn-key inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium disabled:opacity-70',
                 className
             )}>
             <RefreshCw className={cn('size-4 text-[var(--brand-ink)]', bezig && 'animate-spin')} />
-            {bezig ? t('bezig') : t('vernieuwen')}
+            <span className='hidden sm:inline'>{bezig ? t('bezig') : t('vernieuwen')}</span>
         </button>
     );
 }
