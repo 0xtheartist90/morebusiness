@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -123,6 +124,18 @@ export function HartKnop({
     );
 }
 
+/** One number on the card: a small label over the value; `klein` for the monthly row. */
+function Cel({ label, children, klein }: { label: string; children: ReactNode; klein?: boolean }) {
+    return (
+        <div className='min-w-0'>
+            <dt className='text-muted-foreground truncate text-[11px]'>{label}</dt>
+            <dd className={cn('readout truncate font-semibold', klein ? 'text-[13.5px]' : 'text-[15px]')}>
+                {children}
+            </dd>
+        </div>
+    );
+}
+
 /** The overview card: photo, name and the three numbers to compare at a glance. Click for everything else. */
 export function ZaakCard({
     zaak,
@@ -136,9 +149,9 @@ export function ZaakCard({
     onOpen: () => void;
 }) {
     const { geld } = useGeld();
-    const { t, woord, maanden } = useT();
+    const { t, woord, maanden, getal } = useT();
     const b = band(zaak.terugverdientijd);
-    const { winst } = cijfers(zaak);
+    const { winst, omzet, lasten } = cijfers(zaak);
 
     return (
         <article
@@ -184,27 +197,45 @@ export function ZaakCard({
                     {zaak.naam}
                 </h3>
 
-                <dl className='mt-auto grid grid-cols-3 gap-2 pt-3'>
-                    <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>{t('kaartStart')}</dt>
-                        <dd className='readout truncate text-[15px] font-semibold text-[var(--brand-ink)]'>
-                            {zaak.startkapitaal === null ? '–' : geld(zaak.startkapitaal)}
-                        </dd>
-                    </div>
-                    <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>{t('kaartWinst')}</dt>
-                        <dd className='readout truncate text-[15px] font-semibold'>
+                {/* Once: start, payback, break-even. Every month: revenue, costs, profit. */}
+                <div className='mt-auto pt-3'>
+                    <dl className='grid grid-cols-3 gap-2'>
+                        <Cel label={t('kaartStart')}>
+                            <span className='text-[var(--brand-ink)]'>
+                                {zaak.startkapitaal === null ? '–' : geld(zaak.startkapitaal)}
+                            </span>
+                        </Cel>
+                        <Cel label={t('kaartTerug')}>
+                            <span className='flex items-center gap-1.5'>
+                                <span className={cn('size-2 shrink-0 rounded-full', BAND_DOT[b])} aria-hidden />
+                                {zaak.terugverdientijd === null ? '–' : maanden(zaak.terugverdientijd)}
+                            </span>
+                        </Cel>
+                        <Cel label={t('kaartQuitte')}>
+                            {zaak.klantenNodig === null ? (
+                                '–'
+                            ) : (
+                                <>
+                                    {getal(zaak.klantenNodig)}
+                                    <span className='text-muted-foreground text-[11px] font-normal'>
+                                        {t('perDagKort')}
+                                    </span>
+                                </>
+                            )}
+                        </Cel>
+                    </dl>
+                    <dl className='mt-2.5 grid grid-cols-3 gap-2 border-t pt-2.5'>
+                        <Cel label={t('kaartOmzet')} klein>
+                            {omzet === null ? '–' : geld(omzet)}
+                        </Cel>
+                        <Cel label={t('kaartLasten')} klein>
+                            {lasten === null ? '–' : <span className='text-rose-700'>{geld(lasten)}</span>}
+                        </Cel>
+                        <Cel label={t('kaartWinst')} klein>
                             {winst === null ? '–' : <span className='text-emerald-700'>{geld(winst)}</span>}
-                        </dd>
-                    </div>
-                    <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>{t('kaartTerug')}</dt>
-                        <dd className='readout flex items-center gap-1.5 truncate text-[15px] font-semibold'>
-                            <span className={cn('size-2 shrink-0 rounded-full', BAND_DOT[b])} aria-hidden />
-                            {zaak.terugverdientijd === null ? '–' : maanden(zaak.terugverdientijd)}
-                        </dd>
-                    </div>
-                </dl>
+                        </Cel>
+                    </dl>
+                </div>
             </div>
         </article>
     );

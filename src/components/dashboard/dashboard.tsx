@@ -367,7 +367,7 @@ function Overzicht({
                     </div>
 
                     {lijst.length ? (
-                        <div className='3xl:grid-cols-5 mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'>
+                        <div className='mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'>
                             {lijst.map((z) => (
                                 <ZaakCard
                                     key={z.id}
