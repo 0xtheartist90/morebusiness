@@ -189,7 +189,7 @@ export function ZaakCard({
                     <div className='min-w-0'>
                         <dt className='text-muted-foreground text-[11px]'>Winst / mnd</dt>
                         <dd className='readout truncate text-[15px] font-semibold'>
-                            {winst === null ? '–' : thb(winst)}
+                            {winst === null ? '–' : <span className='text-emerald-700'>{thb(winst)}</span>}
                         </dd>
                     </div>
                     <div className='min-w-0'>

@@ -95,7 +95,7 @@ function StaafRij({
                 <div
                     className={cn(
                         'h-full rounded-full',
-                        accent ? 'bg-[var(--brand)]' : sterk ? 'bg-stone-600' : sub ? 'bg-stone-300' : 'bg-stone-400'
+                        accent ? 'bg-emerald-500' : sterk ? 'bg-rose-500' : sub ? 'bg-stone-300' : 'bg-stone-400'
                     )}
                     style={{ width: `${Math.max(2, Math.min(100, (waarde / max) * 100))}%` }}
                 />
@@ -104,7 +104,8 @@ function StaafRij({
                 className={cn(
                     'readout text-right',
                     (accent || sterk) && 'font-semibold',
-                    accent && 'text-[var(--brand-ink)]',
+                    accent && 'text-emerald-700',
+                    sterk && 'text-rose-700',
                     sub && 'text-muted-foreground'
                 )}>
                 {min ? '\u2212\u2009' : ''}
@@ -151,7 +152,7 @@ function Kpi({
                 'h-full min-w-0 rounded-xl border',
                 klein ? 'px-3 py-2.5' : 'px-3.5 py-3',
                 accent ? 'border-[#f3e2d4] bg-[linear-gradient(180deg,#fff,#fff7f0)]' : 'bg-white',
-                sterk && 'border-stone-300 bg-stone-50'
+                sterk && 'border-rose-200 bg-rose-50/50'
             )}>
             <p className='text-muted-foreground truncate text-[11.5px]'>{label}</p>
             <div className={cn('readout mt-1 truncate leading-tight font-semibold', klein ? 'text-[15px]' : 'text-lg')}>
@@ -323,16 +324,12 @@ function Inhoud({
                         </div>
                         <div className='col-span-2'>
                             <Kpi label='Lasten' klein sterk>
-                                {lasten === null ? <Onbekend /> : thb(lasten)}
+                                {lasten === null ? <Onbekend /> : <span className='text-rose-700'>{thb(lasten)}</span>}
                             </Kpi>
                         </div>
                         <div className='col-span-2'>
                             <Kpi label='Winst' klein>
-                                {winst === null ? (
-                                    <Onbekend />
-                                ) : (
-                                    <span className='text-[var(--brand-ink)]'>{thb(winst)}</span>
-                                )}
+                                {winst === null ? <Onbekend /> : <span className='text-emerald-700'>{thb(winst)}</span>}
                             </Kpi>
                         </div>
                     </div>
@@ -447,7 +444,7 @@ function Inhoud({
                                             <span className='text-muted-foreground font-normal'>· marge {marge}%</span>
                                         )}
                                     </span>
-                                    <span className='readout text-[var(--brand-ink)]'>{thb(winst)}</span>
+                                    <span className='readout text-emerald-700'>{thb(winst)}</span>
                                 </>
                             )
                         }>
