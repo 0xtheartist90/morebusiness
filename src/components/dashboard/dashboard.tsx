@@ -335,7 +335,7 @@ export function Dashboard({ data }: { data: ZakenData }) {
                         })}
                     </div>
 
-                    <div className='flex shrink-0 items-center gap-1.5'>
+                    <div className='flex flex-wrap items-center gap-1.5 md:shrink-0 md:flex-nowrap'>
                         <VernieuwKnop className='mr-1' />
                         <label className='relative'>
                             <span className='sr-only'>Sorteren op</span>
