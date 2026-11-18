@@ -3,10 +3,11 @@
 import type { ReactNode } from 'react';
 
 import { BAND_DOT, BAND_PILL, Foto, HartKnop, cijfers } from '@/components/dashboard/zaak-card';
-import { getal, maanden, telHref } from '@/lib/format';
+import { telHref } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { useGeld } from '@/lib/valuta';
-import { type Zaak, band, enkelvoud } from '@/lib/zaak-types';
+import { type Zaak, band } from '@/lib/zaak-types';
 import * as Dialog from '@radix-ui/react-dialog';
 
 import { ChevronLeft, ChevronRight, ExternalLink, MapPin, Phone, X } from 'lucide-react';
@@ -43,6 +44,8 @@ function Paneel({
 
 /** A row: label left, amount right in tabular figures. Unknown amounts are shown faded. */
 function Rij({ label, hint, waarde, sterk }: { label: string; hint?: string; waarde: string; sterk?: boolean }) {
+    const { t } = useT();
+
     return (
         <div className='flex h-8 items-center justify-between gap-3 text-[13.5px]'>
             <span className={cn('truncate', sterk ? 'font-semibold' : 'text-stone-600')}>
@@ -50,7 +53,11 @@ function Rij({ label, hint, waarde, sterk }: { label: string; hint?: string; waa
                 {hint && <span className='text-muted-foreground font-normal'> · {hint}</span>}
             </span>
             <span
-                className={cn('readout shrink-0', sterk && 'font-semibold', waarde === 'onbekend' && 'text-stone-400')}>
+                className={cn(
+                    'readout shrink-0',
+                    sterk && 'font-semibold',
+                    waarde === t('onbekend') && 'text-stone-400'
+                )}>
                 {waarde}
             </span>
         </div>
@@ -83,7 +90,7 @@ function StaafRij({
     return (
         <div
             className={cn(
-                'grid grid-cols-[8.25rem_1fr_5.5rem] items-center gap-3',
+                'grid grid-cols-[9.75rem_1fr_5.5rem] items-center gap-3',
                 sub ? 'h-7 text-[12.5px]' : 'h-9 text-[13.5px]'
             )}>
             <span
@@ -132,13 +139,15 @@ function Deel({ label, hint, waarde }: { label: string; hint: string; waarde: st
 
 /** A small number in a row of three, under the customer meter. */
 function Mini({ label, waarde }: { label: string; waarde: string }) {
+    const { t } = useT();
+
     return (
         <div className='min-w-0 px-3 first:pl-0 last:pr-0'>
             <p className='text-muted-foreground text-[11.5px] leading-tight'>{label}</p>
             <p
                 className={cn(
                     'readout mt-0.5 truncate text-[14px] font-semibold',
-                    waarde === 'onbekend' && 'font-normal text-stone-400'
+                    waarde === t('onbekend') && 'font-normal text-stone-400'
                 )}>
                 {waarde}
             </p>
@@ -177,7 +186,11 @@ function Kpi({
     );
 }
 
-const Onbekend = () => <span className='text-muted-foreground font-normal'>onbekend</span>;
+function Onbekend() {
+    const { t } = useT();
+
+    return <span className='text-muted-foreground font-normal'>{t('onbekend')}</span>;
+}
 
 // ---- The pop-up ---------------------------------------------------------------------------------------
 
@@ -250,6 +263,8 @@ function Inhoud({
     totaal?: number;
 }) {
     const { geld, kosten: geldKosten } = useGeld();
+    const { t, woord, enkel, getal, maanden } = useT();
+    const eenheid = woord(zaak.eenheid);
     const b = band(zaak.terugverdientijd);
     const { omzet, winst, lasten, inkoop, buffer, marge } = cijfers(zaak);
     const tel = telHref(zaak.telefoon);
@@ -267,10 +282,10 @@ function Inhoud({
         if (overig < 0) return null;
 
         return [
-            { label: 'Huur', waarde: huur },
-            { label: 'Loon · 1 medewerker', waarde: loon },
-            { label: 'Nuts · water, stroom', waarde: nuts },
-            { label: 'Overig', waarde: overig }
+            { label: t('huur'), waarde: huur },
+            { label: t('loon'), waarde: loon },
+            { label: t('nuts'), waarde: nuts },
+            { label: t('overig'), waarde: overig }
         ].filter((v) => v.waarde > 0);
     })();
     const ronde = 'grid size-9 place-items-center rounded-full bg-white/90 shadow-sm backdrop-blur hover:bg-white';
@@ -289,13 +304,13 @@ function Inhoud({
                             </span>
                             {zaak.nieuw && (
                                 <span className='rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-semibold text-white shadow-sm'>
-                                    Nieuw
+                                    {t('nieuw')}
                                 </span>
                             )}
                         </div>
                         <div className='flex items-center gap-1.5'>
                             <HartKnop zaak={zaak} favoriet={favoriet} onFavoriet={onFavoriet} />
-                            <Dialog.Close aria-label='Sluiten' className={cn(ronde, 'lg:hidden')}>
+                            <Dialog.Close aria-label={t('sluiten')} className={cn(ronde, 'lg:hidden')}>
                                 <X className='size-4' />
                             </Dialog.Close>
                         </div>
@@ -305,21 +320,21 @@ function Inhoud({
                 <div className='flex flex-1 flex-col gap-4 p-4 lg:min-h-0 lg:overflow-y-auto lg:p-5'>
                     <header>
                         <p className='text-muted-foreground flex items-center gap-1.5 text-[13px]'>
-                            <span className='font-medium text-[var(--brand-ink)]'>{zaak.type}</span>
+                            <span className='font-medium text-[var(--brand-ink)]'>{woord(zaak.type)}</span>
                             <span aria-hidden>·</span>
                             <MapPin className='size-3.5 shrink-0' />
-                            <span className='truncate'>{zaak.locatie ?? 'locatie onbekend'}</span>
+                            <span className='truncate'>{zaak.locatie ?? t('locatieOnbekend')}</span>
                         </p>
                         <Dialog.Title className='mt-1 text-xl leading-snug font-semibold'>{zaak.naam}</Dialog.Title>
                         <Dialog.Description className='sr-only'>
-                            Startinvestering, maandcijfers en klanten per dag van {zaak.naam}.
+                            {t('beschrijving', { naam: zaak.naam })}
                         </Dialog.Description>
                     </header>
 
                     {/* Once: start and payback. Every month: in, out, left over. */}
                     <div className='grid grid-cols-6 gap-2'>
                         <div className='col-span-3'>
-                            <Kpi label='Startinvestering' accent>
+                            <Kpi label={t('startinvestering')} accent>
                                 <span
                                     className={
                                         zaak.startkapitaal === null ? 'text-muted-foreground font-normal' : 'text-glow'
@@ -329,7 +344,7 @@ function Inhoud({
                             </Kpi>
                         </div>
                         <div className='col-span-3'>
-                            <Kpi label='Terugverdiend in'>
+                            <Kpi label={t('terugverdiendIn')}>
                                 <span className='flex items-center gap-2'>
                                     <span className={cn('size-2.5 rounded-full', BAND_DOT[b])} aria-hidden />
                                     {maanden(zaak.terugverdientijd)}
@@ -337,29 +352,29 @@ function Inhoud({
                             </Kpi>
                         </div>
                         <p className='text-muted-foreground col-span-6 mt-1 -mb-0.5 text-[11.5px]'>
-                            Per maand
+                            {t('perMaand')}
                             {verwacht !== null && (
                                 <>
                                     {' '}
-                                    · bij{' '}
+                                    · {t('bij')}{' '}
                                     <span className='text-foreground font-medium'>
-                                        {getal(verwacht)} {zaak.eenheid}/dag
+                                        {getal(verwacht)} {t('perDag', { e: eenheid })}
                                     </span>
                                 </>
                             )}
                         </p>
                         <div className='col-span-2'>
-                            <Kpi label='Omzet' klein>
+                            <Kpi label={t('omzet')} klein>
                                 {omzet === null ? <Onbekend /> : geld(omzet)}
                             </Kpi>
                         </div>
                         <div className='col-span-2'>
-                            <Kpi label='Lasten' klein sterk>
+                            <Kpi label={t('lasten')} klein sterk>
                                 {lasten === null ? <Onbekend /> : <span className='text-rose-700'>{geld(lasten)}</span>}
                             </Kpi>
                         </div>
                         <div className='col-span-2'>
-                            <Kpi label='Winst' klein>
+                            <Kpi label={t('winst')} klein>
                                 {winst === null ? (
                                     <Onbekend />
                                 ) : (
@@ -382,12 +397,12 @@ function Inhoud({
                                 target='_blank'
                                 rel='noopener noreferrer'
                                 className='btn-primary inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl px-4 text-sm'>
-                                Bekijk advertentie
+                                {t('bekijkAdvertentie')}
                                 <ExternalLink className='size-3.5' />
                             </a>
                         ) : (
                             <span className='inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-stone-50 px-4 text-sm text-stone-400'>
-                                Geen advertentie
+                                {t('geenAdvertentie')}
                             </span>
                         )}
                         {tel && (
@@ -396,7 +411,7 @@ function Inhoud({
                                 title={zaak.telefoon ?? undefined}
                                 className='btn-key inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium'>
                                 <Phone className='size-4 text-[var(--brand)]' />
-                                Bel
+                                {t('bel')}
                             </a>
                         )}
                     </div>
@@ -407,19 +422,15 @@ function Inhoud({
             <div className='flex min-w-0 flex-1 flex-col lg:min-h-0'>
                 <div className='hidden h-14 shrink-0 items-center justify-between gap-3 border-b bg-white px-5 lg:flex'>
                     <p className='readout text-muted-foreground text-[13px]'>
-                        {positie && totaal ? (
-                            <>
-                                Zaak <span className='text-foreground font-semibold'>{positie}</span> van {totaal}
-                            </>
-                        ) : null}
+                        {positie && totaal ? <>{t('zaakVan', { i: positie, n: totaal })}</> : null}
                     </p>
                     <div className='flex items-center gap-1.5'>
                         <button
                             type='button'
                             onClick={onVorige}
                             disabled={!onVorige}
-                            aria-label='Vorige zaak'
-                            title='Vorige (←)'
+                            aria-label={t('vorige')}
+                            title={`${t('vorige')} (←)`}
                             className={navKnop}>
                             <ChevronLeft className='size-4' />
                         </button>
@@ -427,12 +438,12 @@ function Inhoud({
                             type='button'
                             onClick={onVolgende}
                             disabled={!onVolgende}
-                            aria-label='Volgende zaak'
-                            title='Volgende (→)'
+                            aria-label={t('volgende')}
+                            title={`${t('volgende')} (→)`}
                             className={navKnop}>
                             <ChevronRight className='size-4' />
                         </button>
-                        <Dialog.Close aria-label='Sluiten' className={cn(navKnop, 'ml-2')}>
+                        <Dialog.Close aria-label={t('sluiten')} className={cn(navKnop, 'ml-2')}>
                             <X className='size-4' />
                         </Dialog.Close>
                     </div>
@@ -441,44 +452,44 @@ function Inhoud({
                 <div className='grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 xl:grid-cols-2 xl:items-start'>
                     {/* Start: the sum, ending in the total. */}
                     <Paneel
-                        titel='Startinvestering'
+                        titel={t('startinvestering')}
                         meta={
                             <span
                                 className={cn(
                                     'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1',
                                     BAND_PILL[b]
                                 )}>
-                                terug in {maanden(zaak.terugverdientijd)}
+                                {t('terugIn', { x: maanden(zaak.terugverdientijd) })}
                             </span>
                         }
                         voet={
                             <>
-                                <span>Totaal nodig</span>
+                                <span>{t('totaalNodig')}</span>
                                 <span className='readout text-[var(--brand-ink)]'>{geld(zaak.startkapitaal)}</span>
                             </>
                         }>
                         <div className='divide-y divide-stone-100'>
-                            <Rij label='Overname' waarde={geld(zaak.overname)} />
-                            <Rij label='Borg' waarde={geldKosten(zaak.borg)} />
-                            <Rij label='Huur vooruit' waarde={geldKosten(zaak.huurVooruit)} />
-                            <Rij label='Eenmalig' waarde={geld(zaak.eenmalig)} sterk />
-                            <Rij label='Buffer' hint='lasten 1e maand + 1 week inkoop' waarde={geld(buffer)} />
+                            <Rij label={t('overname')} waarde={geld(zaak.overname)} />
+                            <Rij label={t('borg')} waarde={geldKosten(zaak.borg)} />
+                            <Rij label={t('huurVooruit')} waarde={geldKosten(zaak.huurVooruit)} />
+                            <Rij label={t('eenmalig')} waarde={geld(zaak.eenmalig)} sterk />
+                            <Rij label={t('buffer')} hint={t('bufferHint')} waarde={geld(buffer)} />
                         </div>
                     </Paneel>
 
                     {/* Month: the full sum, costs broken down the way the sheet adds them up. Spans both rows. */}
                     <div className='xl:row-span-2'>
                         <Paneel
-                            titel='Elke maand'
-                            meta={<span className='text-muted-foreground text-xs'>omzet − lasten = winst</span>}
+                            titel={t('elkeMaand')}
+                            meta={<span className='text-muted-foreground text-xs'>{t('formule')}</span>}
                             voet={
                                 winst !== null && (
                                     <>
                                         <span>
-                                            Winst{' '}
+                                            {t('winst')}{' '}
                                             {marge !== null && (
                                                 <span className='text-muted-foreground font-normal'>
-                                                    · marge {marge}%
+                                                    · {t('marge', { x: marge })}
                                                 </span>
                                             )}
                                         </span>
@@ -487,25 +498,28 @@ function Inhoud({
                                 )
                             }>
                             {omzet === null || winst === null ? (
-                                <p className='text-muted-foreground py-2 text-sm'>Omzet en winst nog niet berekend.</p>
+                                <p className='text-muted-foreground py-2 text-sm'>{t('nogGeenOmzet')}</p>
                             ) : (
                                 <div>
-                                    <StaafRij label='Omzet' waarde={omzet} max={omzet} />
+                                    <StaafRij label={t('omzet')} waarde={omzet} max={omzet} />
                                     {/* Where the turnover comes from: the expected customers a day. */}
                                     {verwacht !== null &&
                                         zaak.bestedingPerKlant !== null &&
                                         zaak.openDagen !== null && (
                                             <p className='text-muted-foreground -mt-1 pb-1.5 pl-3 text-[12px]'>
                                                 <span className='text-foreground font-medium'>
-                                                    {getal(verwacht)} {zaak.eenheid}/dag
+                                                    {getal(verwacht)} {t('perDag', { e: eenheid })}
                                                 </span>{' '}
-                                                × {geld(zaak.bestedingPerKlant)} × {zaak.openDagen} open dagen
+                                                {t('omzetUitleg', {
+                                                    besteding: geld(zaak.bestedingPerKlant),
+                                                    dagen: zaak.openDagen
+                                                })}
                                             </p>
                                         )}
 
                                     <div className='border-y border-stone-100 py-1.5'>
                                         {lasten !== null && (
-                                            <StaafRij label='Lasten' waarde={lasten} max={omzet} min sterk />
+                                            <StaafRij label={t('lasten')} waarde={lasten} max={omzet} min sterk />
                                         )}
 
                                         {/* Stock: a share of turnover, with what it is made of. */}
@@ -514,8 +528,8 @@ function Inhoud({
                                                 <StaafRij
                                                     label={
                                                         zaak.inkoopPct !== null
-                                                            ? `Inkoop · ${getal(zaak.inkoopPct)}%`
-                                                            : 'Inkoop'
+                                                            ? `${t('inkoop')} · ${getal(zaak.inkoopPct)}%`
+                                                            : t('inkoop')
                                                     }
                                                     waarde={inkoop}
                                                     max={omzet}
@@ -524,7 +538,7 @@ function Inhoud({
                                                 {zaak.inkoopDelen.map((d) => (
                                                     <Deel
                                                         key={d.label}
-                                                        label={d.label}
+                                                        label={woord(d.label)}
                                                         hint={`${getal(d.pct)}%`}
                                                         waarde={geld((omzet * d.pct) / 100)}
                                                     />
@@ -545,7 +559,7 @@ function Inhoud({
                                             ))
                                         ) : zaak.vasteKosten !== null ? (
                                             <StaafRij
-                                                label='Huur, loon, nuts'
+                                                label={t('huurLoonNuts')}
                                                 waarde={zaak.vasteKosten}
                                                 max={omzet}
                                                 sub
@@ -553,7 +567,7 @@ function Inhoud({
                                         ) : null}
                                     </div>
 
-                                    <StaafRij label='Winst' waarde={winst} max={omzet} accent />
+                                    <StaafRij label={t('winst')} waarde={winst} max={omzet} accent />
                                 </div>
                             )}
                         </Paneel>
@@ -561,30 +575,30 @@ function Inhoud({
 
                     {/* Per day: break-even against expected. */}
                     <Paneel
-                        titel='Klanten per dag'
-                        meta={<span className='text-muted-foreground text-xs'>{zaak.eenheid}</span>}>
+                        titel={t('klantenPerDag')}
+                        meta={<span className='text-muted-foreground text-xs'>{eenheid}</span>}>
                         {quitte === null ? (
-                            <p className='text-muted-foreground py-2 text-sm'>Nog niet berekend.</p>
+                            <p className='text-muted-foreground py-2 text-sm'>{t('nogNiet')}</p>
                         ) : (
                             <div className='py-1.5'>
                                 <div className='flex items-end justify-between gap-4'>
                                     <div>
                                         <p className='readout text-2xl leading-none font-semibold'>{getal(quitte)}</p>
-                                        <p className='text-muted-foreground mt-1 text-xs'>quitte</p>
+                                        <p className='text-muted-foreground mt-1 text-xs'>{t('quitte')}</p>
                                     </div>
                                     {verwacht !== null && (
                                         <div className='text-right'>
                                             <p className='readout text-2xl leading-none font-semibold text-[var(--brand-ink)]'>
                                                 {getal(verwacht)}
                                             </p>
-                                            <p className='text-muted-foreground mt-1 text-xs'>verwacht</p>
+                                            <p className='text-muted-foreground mt-1 text-xs'>{t('verwacht')}</p>
                                         </div>
                                     )}
                                 </div>
                                 <div
                                     className='relative mt-3 h-2.5 rounded-full bg-stone-100'
                                     role='img'
-                                    aria-label={`Quitte ${getal(quitte)}, verwacht ${verwacht === null ? 'onbekend' : getal(verwacht)} per dag`}>
+                                    aria-label={`${t('quitte')} ${getal(quitte)}, ${t('verwacht')} ${getal(verwacht)}`}>
                                     {verwacht !== null && (
                                         <div
                                             className='absolute inset-y-0 left-0 rounded-full bg-[var(--brand)]'
@@ -598,11 +612,14 @@ function Inhoud({
                                 </div>
                                 <div className='mt-4 grid grid-cols-3 divide-x border-t pt-3'>
                                     <Mini
-                                        label={`Per ${enkelvoud(zaak.eenheid)}`}
+                                        label={t('perEenheid', { e: enkel(zaak.eenheid) })}
                                         waarde={geld(zaak.bestedingPerKlant)}
                                     />
-                                    <Mini label='Omzet quitte' waarde={geld(zaak.breakEvenOmzetDag)} />
-                                    <Mini label='Boven quitte' waarde={boven === null ? 'onbekend' : `+${boven}%`} />
+                                    <Mini label={t('omzetQuitte')} waarde={geld(zaak.breakEvenOmzetDag)} />
+                                    <Mini
+                                        label={t('bovenQuitte')}
+                                        waarde={boven === null ? t('onbekend') : `+${boven}%`}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -616,7 +633,7 @@ function Inhoud({
                         onClick={onVorige}
                         disabled={!onVorige}
                         className='btn-key inline-flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-medium disabled:opacity-40'>
-                        <ChevronLeft className='size-4' /> Vorige
+                        <ChevronLeft className='size-4' /> {t('vorige')}
                     </button>
                     {positie && totaal ? (
                         <span className='readout text-muted-foreground text-xs'>
@@ -628,7 +645,7 @@ function Inhoud({
                         onClick={onVolgende}
                         disabled={!onVolgende}
                         className='btn-key inline-flex h-9 items-center gap-1 rounded-xl px-3 text-sm font-medium disabled:opacity-40'>
-                        Volgende <ChevronRight className='size-4' />
+                        {t('volgende')} <ChevronRight className='size-4' />
                     </button>
                 </div>
             </div>

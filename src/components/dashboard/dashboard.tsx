@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { VernieuwKnop } from '@/components/dashboard/vernieuw-knop';
 import { ZaakCard, typeIcon } from '@/components/dashboard/zaak-card';
 import { ZaakModal } from '@/components/dashboard/zaak-modal';
+import { type Sleutel, TALEN, type Taal, TaalProvider, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { GeldProvider, type Koersen, VALUTA, type Valuta, useGeld } from '@/lib/valuta';
 import type { Zaak, ZakenData } from '@/lib/zaak-types';
@@ -17,17 +18,24 @@ import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, Heart, LayoutGrid,
 type SortKey = 'terug' | 'start' | 'winst' | 'klanten' | 'nr';
 
 /** Each sort with its natural direction (best first); the arrow button flips it. */
-const SORTS: { key: SortKey; label: string; asc: boolean; get: (z: Zaak) => number | null }[] = [
-    { key: 'terug', label: 'Terugverdientijd', asc: true, get: (z) => z.terugverdientijd },
-    { key: 'start', label: 'Startkapitaal', asc: true, get: (z) => z.startkapitaal },
-    { key: 'winst', label: 'Winst / mnd', asc: false, get: (z) => z.winstPerMaand },
-    { key: 'klanten', label: 'Klanten / dag nodig', asc: true, get: (z) => z.klantenNodig },
-    { key: 'nr', label: 'Volgorde sheet', asc: true, get: (z) => z.nr }
+const SORTS: { key: SortKey; label: Sleutel; asc: boolean; get: (z: Zaak) => number | null }[] = [
+    { key: 'terug', label: 'sortTerug', asc: true, get: (z) => z.terugverdientijd },
+    { key: 'start', label: 'sortStart', asc: true, get: (z) => z.startkapitaal },
+    { key: 'winst', label: 'sortWinst', asc: false, get: (z) => z.winstPerMaand },
+    { key: 'klanten', label: 'sortKlanten', asc: true, get: (z) => z.klantenNodig },
+    { key: 'nr', label: 'sortNr', asc: true, get: (z) => z.nr }
 ];
 
-type Filters = { type: string | null; favorieten: boolean; sort: SortKey; asc: boolean; valuta: Valuta };
+type Filters = {
+    type: string | null;
+    favorieten: boolean;
+    sort: SortKey;
+    asc: boolean;
+    valuta: Valuta;
+    taal: Taal;
+};
 
-const START: Filters = { type: null, favorieten: false, sort: 'terug', asc: true, valuta: 'THB' };
+const START: Filters = { type: null, favorieten: false, sort: 'terug', asc: true, valuta: 'THB', taal: 'en' };
 
 const FAV_KEY = 'overname-cm:favorieten';
 const FILTER_KEY = 'overname-cm:filters-v2';
@@ -172,9 +180,35 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 // ---- The page --------------------------------------------------------------------------------
 
 export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen }) {
+    const filters = useFilters();
+    const { taal, valuta } = filters.f;
+
+    // The page language follows the choice (for screen readers and Thai line breaking).
+    useEffect(() => {
+        document.documentElement.lang = taal;
+    }, [taal]);
+
+    return (
+        <TaalProvider taal={taal}>
+            <GeldProvider valuta={valuta} koersen={koersen}>
+                <Overzicht data={data} koersen={koersen} filters={filters} />
+            </GeldProvider>
+        </TaalProvider>
+    );
+}
+
+function Overzicht({
+    data,
+    koersen,
+    filters: { f, set }
+}: {
+    data: ZakenData;
+    koersen: Koersen;
+    filters: ReturnType<typeof useFilters>;
+}) {
     const { zaken } = data;
     const { ids: favs, toggle } = useFavorieten();
-    const { f, set } = useFilters();
+    const { t, woord } = useT();
 
     const lijst = useMemo(() => filterZaken(zaken, f, favs), [zaken, f, favs]);
     // The business open in the pop-up; previous/next walk the current (filtered, sorted) list.
@@ -196,16 +230,16 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
     const sort = SORTS.find((s) => s.key === f.sort) ?? SORTS[0];
 
     return (
-        <GeldProvider valuta={f.valuta} koersen={koersen}>
+        <>
             <div className='min-h-dvh lg:pl-60'>
                 {/* Sidebar, as on the SRE dashboard but white, with just the two views. */}
                 <aside className='fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-white px-3 py-5 lg:flex'>
                     <div className='flex items-center gap-2.5 px-2.5'>
                         <Monogram />
                         <span className='leading-tight'>
-                            <span className='block text-[15px] font-semibold'>overname</span>
+                            <span className='block text-[15px] font-semibold'>{t('appNaam')}</span>
                             <span className='text-muted-foreground block text-[11px] tracking-[0.18em]'>
-                                chiang mai
+                                {t('appSub')}
                             </span>
                         </span>
                     </div>
@@ -216,7 +250,7 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                             onClick={() => set({ favorieten: false })}
                             icon={<LayoutGrid className='size-4' strokeWidth={1.75} />}
                             count={zaken.length}>
-                            Alle zaken
+                            {t('alleZaken')}
                         </NavRow>
                         <NavRow
                             active={f.favorieten}
@@ -228,24 +262,24 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                                 />
                             }
                             count={nFav}>
-                            Favorieten
+                            {t('favorieten')}
                         </NavRow>
                     </nav>
 
                     <div className='text-muted-foreground mt-auto px-2.5 text-xs leading-relaxed'>
                         <p className='flex items-center gap-2'>
                             <span className={cn('led', !data.live && 'bg-stone-400 shadow-none')} />
-                            {data.live ? 'Live uit Google Sheet' : 'Lokale kopie (sheet niet bereikbaar)'}
+                            {data.live ? t('live') : t('lokaal')}
                         </p>
                         <p className='mt-1'>
-                            Bijgewerkt {data.bijgewerkt ?? 'onbekend'} · bedragen in {f.valuta}
+                            {t('bijgewerkt', { datum: data.bijgewerkt ?? t('onbekend'), valuta: f.valuta })}
                         </p>
                         <a
                             href={data.sheetUrl}
                             target='_blank'
                             rel='noopener noreferrer'
                             className='mt-1 inline-block font-medium text-[var(--brand-ink)] hover:underline'>
-                            Open de sheet
+                            {t('openSheet')}
                         </a>
                     </div>
                 </aside>
@@ -263,23 +297,23 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                                             f.favorieten && 'fill-[var(--brand)] text-[var(--brand)]'
                                         )}
                                     />
-                                    Favorieten
+                                    {t('favorieten')}
                                     <span className='readout text-xs opacity-50'>{nFav}</span>
                                 </Chip>
                             </span>
                             <Chip active={!f.type} onClick={() => set({ type: null })}>
-                                Alle types
+                                {t('alleTypes')}
                             </Chip>
-                            {types.map(([t, n]) => {
-                                const Icon = typeIcon(t);
+                            {types.map(([type, n]) => {
+                                const Icon = typeIcon(type);
 
                                 return (
                                     <Chip
-                                        key={t}
-                                        active={f.type === t}
-                                        onClick={() => set({ type: f.type === t ? null : t })}>
+                                        key={type}
+                                        active={f.type === type}
+                                        onClick={() => set({ type: f.type === type ? null : type })}>
                                         <Icon className='size-3.5' />
-                                        {t}
+                                        {woord(type)}
                                         <span className='readout text-xs opacity-50'>{n}</span>
                                     </Chip>
                                 );
@@ -287,10 +321,11 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                         </div>
 
                         <div className='flex flex-wrap items-center gap-1.5 md:shrink-0 md:flex-nowrap'>
+                            <TaalKeuze taal={f.taal} onChange={(taal) => set({ taal })} />
                             <ValutaKeuze valuta={f.valuta} koersen={koersen} onChange={(valuta) => set({ valuta })} />
                             <VernieuwKnop className='mr-1' />
                             <label className='relative'>
-                                <span className='sr-only'>Sorteren op</span>
+                                <span className='sr-only'>{t('sorterenOp')}</span>
                                 <select
                                     value={f.sort}
                                     onChange={(e) => {
@@ -300,7 +335,7 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                                     className='btn-key h-9 cursor-pointer appearance-none rounded-xl pr-8 pl-3 text-[13px] font-medium'>
                                     {SORTS.map((s) => (
                                         <option key={s.key} value={s.key}>
-                                            {s.label}
+                                            {t(s.label)}
                                         </option>
                                     ))}
                                 </select>
@@ -309,8 +344,8 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                             <button
                                 type='button'
                                 onClick={() => set({ asc: !f.asc })}
-                                aria-label={f.asc ? 'Oplopend, klik voor aflopend' : 'Aflopend, klik voor oplopend'}
-                                title={f.asc ? 'Laag → hoog' : 'Hoog → laag'}
+                                aria-label={f.asc ? t('laagHoog') : t('hoogLaag')}
+                                title={f.asc ? t('laagHoog') : t('hoogLaag')}
                                 className='btn-key grid size-9 shrink-0 place-items-center rounded-xl'>
                                 {f.asc ? (
                                     <ArrowUpNarrowWide className='size-4 text-[var(--brand-ink)]' />
@@ -338,19 +373,19 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                             {f.favorieten && !nFav ? (
                                 <>
                                     <Heart className='size-7 text-[var(--brand)]' strokeWidth={1.5} />
-                                    <p>Nog geen favorieten. Tik op het hartje op een kaart om een zaak te bewaren.</p>
+                                    <p>{t('geenFavs')}</p>
                                 </>
                             ) : (
                                 <>
                                     <Search className='size-7 text-[var(--brand)]' strokeWidth={1.5} />
-                                    <p>Geen zaken gevonden.</p>
+                                    <p>{t('geenZaken')}</p>
                                 </>
                             )}
                             <button
                                 type='button'
                                 onClick={() => set({ type: null, favorieten: false })}
                                 className='btn-key h-9 rounded-xl px-4 text-sm font-medium'>
-                                Toon alle zaken
+                                {t('toonAlle')}
                             </button>
                         </div>
                     )}
@@ -371,7 +406,34 @@ export function Dashboard({ data, koersen }: { data: ZakenData; koersen: Koersen
                     />
                 </main>
             </div>
-        </GeldProvider>
+        </>
+    );
+}
+
+/** EN / TH / NL, next to the currency. */
+function TaalKeuze({ taal, onChange }: { taal: Taal; onChange: (t: Taal) => void }) {
+    const { t } = useT();
+
+    return (
+        <div role='radiogroup' aria-label={t('taal')} className='track flex h-9 items-center rounded-xl p-1'>
+            {TALEN.map(({ code, label }) => (
+                <button
+                    key={code}
+                    type='button'
+                    role='radio'
+                    aria-checked={taal === code}
+                    lang={code}
+                    onClick={() => onChange(code)}
+                    className={cn(
+                        'h-7 rounded-lg px-2.5 text-[12.5px] font-semibold transition-colors',
+                        taal === code
+                            ? 'bg-white text-[var(--brand-ink)] shadow-[0_1px_2px_rgb(40_24_10/0.08),0_2px_6px_-2px_rgb(40_24_10/0.12)]'
+                            : 'text-muted-foreground hover:text-foreground'
+                    )}>
+                    {label}
+                </button>
+            ))}
+        </div>
     );
 }
 
@@ -385,15 +447,16 @@ function ValutaKeuze({
     koersen: Koersen;
     onChange: (v: Valuta) => void;
 }) {
-    const nl = (n: number) => n.toLocaleString('nl-NL', { maximumFractionDigits: 2 });
+    const { t, locale } = useT();
+    const nl = (n: number) => n.toLocaleString(locale, { maximumFractionDigits: 2 });
     const uitleg = `1 € = ฿ ${nl(1 / koersen.EUR)} · 1 $ = ฿ ${nl(1 / koersen.USD)}${
         koersen.datum ? ` (ECB, ${koersen.datum})` : ''
-    }${koersen.live ? '' : ' · vaste koers, live koers niet bereikbaar'}`;
+    }${koersen.live ? '' : ` · ${t('vasteKoers')}`}`;
 
     return (
         <div
             role='radiogroup'
-            aria-label='Valuta'
+            aria-label={t('valuta')}
             title={uitleg}
             className='track flex h-9 items-center rounded-xl p-1'>
             {VALUTA.map((v) => (
@@ -418,40 +481,41 @@ function ValutaKeuze({
 
 function Aannames({ data }: { data: ZakenData }) {
     const { geld } = useGeld();
+    const { t, woord } = useT();
     if (!data.aannames.length) return null;
 
     return (
         <details className='group panel mt-8 overflow-hidden'>
             <summary className='flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 select-none sm:px-5 [&::-webkit-details-marker]:hidden'>
-                <span className='label-hud'>aannames achter de cijfers</span>
+                <span className='label-hud'>{t('aannamesTitel')}</span>
                 <ChevronDown className='text-muted-foreground size-4 transition-transform group-open:rotate-180' />
             </summary>
             <div className='border-t'>
                 <p className='text-muted-foreground max-w-3xl px-4 py-3 text-[13px] leading-relaxed sm:px-5'>
-                    Per zaak gerekend met deze kosten per type
-                    {data.loon !== null && <> en {geld(data.loon)} loon per maand voor 1 fulltime werknemer</>}.
-                    Onbekend telt als 0.
+                    {t('aannamesTekst', { loon: geld(data.loon) })}
                 </p>
                 <div className='overflow-x-auto'>
                     <table className='readout w-full min-w-[34rem] text-[13px]'>
                         <thead>
                             <tr className='text-muted-foreground border-y text-left'>
-                                {['Type zaak', 'Nuts / mnd', 'Overig / mnd', 'Inkoop', 'Open dagen'].map((h, i) => (
-                                    <th
-                                        key={h}
-                                        className={cn(
-                                            'px-4 py-2.5 text-xs font-medium sm:px-5',
-                                            i > 0 && 'text-right'
-                                        )}>
-                                        {h}
-                                    </th>
-                                ))}
+                                {[t('kolType'), t('kolNuts'), t('kolOverig'), t('kolInkoop'), t('kolDagen')].map(
+                                    (h, i) => (
+                                        <th
+                                            key={h}
+                                            className={cn(
+                                                'px-4 py-2.5 text-xs font-medium sm:px-5',
+                                                i > 0 && 'text-right'
+                                            )}>
+                                            {h}
+                                        </th>
+                                    )
+                                )}
                             </tr>
                         </thead>
                         <tbody>
                             {data.aannames.map((a) => (
                                 <tr key={a.type} className='border-b last:border-0'>
-                                    <td className='px-4 py-2.5 font-medium sm:px-5'>{a.type}</td>
+                                    <td className='px-4 py-2.5 font-medium sm:px-5'>{woord(a.type)}</td>
                                     <td className='px-4 py-2.5 text-right sm:px-5'>{geld(a.nuts)}</td>
                                     <td className='px-4 py-2.5 text-right sm:px-5'>{geld(a.overig)}</td>
                                     <td className='px-4 py-2.5 text-right sm:px-5'>
@@ -465,7 +529,7 @@ function Aannames({ data }: { data: ZakenData }) {
                 </div>
                 {data.bronTekst && (
                     <p className='text-muted-foreground border-t px-4 py-3 text-xs leading-relaxed sm:px-5'>
-                        Bron: {data.bronTekst}
+                        {t('bron')}: {data.bronTekst}
                     </p>
                 )}
             </div>

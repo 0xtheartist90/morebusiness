@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { maanden } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { useGeld } from '@/lib/valuta';
 import { type Band, type Zaak, band } from '@/lib/zaak-types';
@@ -101,6 +101,8 @@ export function HartKnop({
     onFavoriet: () => void;
     className?: string;
 }) {
+    const { t } = useT();
+
     return (
         <button
             type='button'
@@ -110,8 +112,8 @@ export function HartKnop({
                 onFavoriet();
             }}
             aria-pressed={favoriet}
-            aria-label={favoriet ? `${zaak.naam} uit favorieten halen` : `${zaak.naam} als favoriet markeren`}
-            title={favoriet ? 'Uit favorieten' : 'Markeer als favoriet'}
+            aria-label={`${zaak.naam}: ${favoriet ? t('favUit') : t('favAan')}`}
+            title={favoriet ? t('favUit') : t('favAan')}
             className={cn(
                 'grid size-9 shrink-0 place-items-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-transform active:scale-95',
                 className
@@ -134,6 +136,7 @@ export function ZaakCard({
     onOpen: () => void;
 }) {
     const { geld } = useGeld();
+    const { t, woord, maanden } = useT();
     const b = band(zaak.terugverdientijd);
     const { winst } = cijfers(zaak);
 
@@ -141,7 +144,7 @@ export function ZaakCard({
         <article
             role='button'
             tabIndex={0}
-            aria-label={`${zaak.naam}: alle details`}
+            aria-label={`${zaak.naam}: ${t('alleDetails')}`}
             onClick={onOpen}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -162,7 +165,7 @@ export function ZaakCard({
                         </span>
                         {zaak.nieuw && (
                             <span className='rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-semibold text-white shadow-sm'>
-                                Nieuw
+                                {t('nieuw')}
                             </span>
                         )}
                     </div>
@@ -172,10 +175,10 @@ export function ZaakCard({
 
             <div className='flex flex-1 flex-col p-3.5 sm:p-4'>
                 <p className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs'>
-                    <span className='shrink-0 font-medium text-[var(--brand-ink)]'>{zaak.type}</span>
+                    <span className='shrink-0 font-medium text-[var(--brand-ink)]'>{woord(zaak.type)}</span>
                     <span aria-hidden>·</span>
                     <MapPin className='size-3 shrink-0' />
-                    <span className='truncate'>{zaak.locatie ?? 'locatie onbekend'}</span>
+                    <span className='truncate'>{zaak.locatie ?? t('locatieOnbekend')}</span>
                 </p>
                 <h3 className='mt-0.5 line-clamp-1 text-[15px] leading-snug font-semibold' title={zaak.naam}>
                     {zaak.naam}
@@ -183,19 +186,19 @@ export function ZaakCard({
 
                 <dl className='mt-auto grid grid-cols-3 gap-2 pt-3'>
                     <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>Start</dt>
+                        <dt className='text-muted-foreground text-[11px]'>{t('kaartStart')}</dt>
                         <dd className='readout truncate text-[15px] font-semibold text-[var(--brand-ink)]'>
                             {zaak.startkapitaal === null ? '–' : geld(zaak.startkapitaal)}
                         </dd>
                     </div>
                     <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>Winst / mnd</dt>
+                        <dt className='text-muted-foreground text-[11px]'>{t('kaartWinst')}</dt>
                         <dd className='readout truncate text-[15px] font-semibold'>
                             {winst === null ? '–' : <span className='text-emerald-700'>{geld(winst)}</span>}
                         </dd>
                     </div>
                     <div className='min-w-0'>
-                        <dt className='text-muted-foreground text-[11px]'>Terug in</dt>
+                        <dt className='text-muted-foreground text-[11px]'>{t('kaartTerug')}</dt>
                         <dd className='readout flex items-center gap-1.5 truncate text-[15px] font-semibold'>
                             <span className={cn('size-2 shrink-0 rounded-full', BAND_DOT[b])} aria-hidden />
                             {zaak.terugverdientijd === null ? '–' : maanden(zaak.terugverdientijd)}

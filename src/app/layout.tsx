@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Metadata } from 'next';
-import { Montserrat } from 'next/font/google';
+import { Montserrat, Noto_Sans_Thai } from 'next/font/google';
 
 import '@/app/globals.css';
 
@@ -13,15 +13,25 @@ const montserrat = Montserrat({
     display: 'swap'
 });
 
+// Montserrat has no Thai letters; Thai text falls through to this font.
+const thai = Noto_Sans_Thai({
+    subsets: ['thai'],
+    weight: ['400', '500', '600', '700'],
+    variable: '--font-thai',
+    display: 'swap'
+});
+
 export const metadata: Metadata = {
-    title: 'Overname zaken Chiang Mai',
-    description: 'Over te nemen zaken in Chiang Mai vergelijken: startkapitaal, break-even, winst en terugverdientijd.'
+    title: 'Business takeovers Chiang Mai',
+    description: 'Compare businesses for sale in Chiang Mai: start investment, break-even, profit and payback time.'
 };
 
 const Layout = ({ children }: Readonly<{ children: ReactNode }>) => {
     return (
-        <html lang='nl'>
-            <body className={`${montserrat.variable} text-foreground overscroll-none antialiased`}>{children}</body>
+        <html lang='en'>
+            <body className={`${montserrat.variable} ${thai.variable} text-foreground overscroll-none antialiased`}>
+                {children}
+            </body>
         </html>
     );
 };

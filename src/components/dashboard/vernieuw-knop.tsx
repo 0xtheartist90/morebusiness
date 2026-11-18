@@ -5,6 +5,7 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { vernieuwSheet } from '@/app/actions';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 import { RefreshCw } from 'lucide-react';
@@ -13,6 +14,7 @@ import { RefreshCw } from 'lucide-react';
 export function VernieuwKnop({ className }: { className?: string }) {
     const router = useRouter();
     const [bezig, start] = useTransition();
+    const { t } = useT();
 
     return (
         <button
@@ -24,13 +26,13 @@ export function VernieuwKnop({ className }: { className?: string }) {
                     router.refresh();
                 })
             }
-            title='Haal de nieuwste gegevens uit de Google Sheet'
+            title={t('vernieuwTitel')}
             className={cn(
                 'btn-key inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium disabled:opacity-70',
                 className
             )}>
             <RefreshCw className={cn('size-4 text-[var(--brand-ink)]', bezig && 'animate-spin')} />
-            {bezig ? 'Bezig…' : 'Vernieuwen'}
+            {bezig ? t('bezig') : t('vernieuwen')}
         </button>
     );
 }

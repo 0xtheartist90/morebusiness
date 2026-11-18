@@ -47,7 +47,7 @@
 }
 
 @theme inline {
-    --font-sans: var(--font-montserrat), system-ui, sans-serif;
+    --font-sans: var(--font-montserrat), var(--font-thai), system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, monospace;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -93,7 +93,7 @@
     }
     body {
         @apply bg-canvas text-foreground;
-        font-family: var(--font-montserrat), system-ui, sans-serif;
+        font-family: var(--font-montserrat), var(--font-thai), system-ui, sans-serif;
     }
     /* Laptop screens: a step smaller, as on the SRE dashboard. */
     @media (min-width: 1024px) and (max-width: 1919px) {
